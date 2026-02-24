@@ -1,0 +1,45 @@
+import type { Metadata } from 'next';
+import { DM_Sans, DM_Serif_Display } from 'next/font/google';
+import { Toaster } from '@/components/ui/sonner';
+import './globals.css';
+
+const dmSans = DM_Sans({
+  variable: '--font-dm-sans',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+});
+
+const dmSerif = DM_Serif_Display({
+  variable: '--font-dm-serif',
+  subsets: ['latin'],
+  weight: '400',
+});
+
+export const metadata: Metadata = {
+  title: 'Retsklar — Er din virksomhed juridisk på plads?',
+  description:
+    'Få et AI-drevet juridisk tjek af din virksomhed. Find mangler inden de koster dig dyrt.',
+  openGraph: {
+    title: 'Retsklar — Er din virksomhed juridisk på plads?',
+    description: 'Få et AI-drevet juridisk tjek af din virksomhed. Find mangler inden de koster dig dyrt.',
+    locale: 'da_DK',
+    type: 'website',
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="da">
+      <body
+        className={`${dmSans.variable} ${dmSerif.variable} font-sans antialiased`}
+      >
+        {children}
+        <Toaster position="bottom-right" />
+      </body>
+    </html>
+  );
+}

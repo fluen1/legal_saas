@@ -1,0 +1,110 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link "Retsklar .dk" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Retsklar
+        - generic [ref=e9]: .dk
+      - navigation [ref=e10]:
+        - link "Sådan virker det" [ref=e11] [cursor=pointer]:
+          - /url: /#hvordan
+        - link "Priser" [ref=e12] [cursor=pointer]:
+          - /url: /#priser
+        - link "FAQ" [ref=e13] [cursor=pointer]:
+          - /url: /#faq
+        - link "Start gratis tjek" [ref=e14] [cursor=pointer]:
+          - /url: /helbredstjek
+  - main [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e18]:
+        - generic [ref=e20]: "!"
+        - generic [ref=e21]: Kritisk
+        - heading "Retsklar" [level=1] [ref=e22]
+        - paragraph [ref=e23]: Juridisk compliance-tjek for din virksomhed
+        - paragraph [ref=e24]: Virksomheden har kritiske mangler inden for GDPR, ansættelsesret og kontraktforhold. Som IT-konsulent med 5-9 ansatte og EU-kunder er der betydelig risiko for bøder og juridiske tvister. Særligt GDPR-compliance er alvorligt mangelfuld.
+        - generic [ref=e26]:
+          - generic [ref=e27]: "16"
+          - generic [ref=e28]: Anbefalede
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e33]:
+            - paragraph [ref=e34]: GDPR & Persondata
+            - paragraph [ref=e35]: Kritiske mangler i grundlæggende GDPR-compliance. Risiko for bøder op til 4% af omsætningen.
+          - generic [ref=e36]: 4 mangler
+        - generic [ref=e37]:
+          - generic [ref=e40]:
+            - paragraph [ref=e41]: Ansættelsesret
+            - paragraph [ref=e42]: Alvorlige mangler i ansættelsesdokumentation og arbejdsmiljø. Risiko for erstatningskrav og bøder fra Arbejdstilsynet.
+          - generic [ref=e43]: 4 mangler
+      - generic [ref=e47]:
+        - img [ref=e49]
+        - heading "Lås op for den fulde rapport" [level=3] [ref=e52]
+        - paragraph [ref=e53]: Se alle juridiske mangler, lovhenvisninger og en prioriteret handlingsplan for din virksomhed.
+        - list [ref=e54]:
+          - listitem [ref=e55]:
+            - img [ref=e56]
+            - text: Alle compliance-områder
+          - listitem [ref=e59]:
+            - img [ref=e60]
+            - text: Detaljerede lovhenvisninger
+          - listitem [ref=e63]:
+            - img [ref=e64]
+            - text: Prioriteret handlingsplan
+          - listitem [ref=e67]:
+            - img [ref=e68]
+            - text: PDF-download
+        - generic [ref=e71]:
+          - button "Fuld Rapport — 499 kr" [ref=e72]
+          - button "Premium + Rådgivning — 1.499 kr" [ref=e73]
+      - generic [ref=e76]:
+        - img [ref=e77]
+        - paragraph [ref=e79]: Denne rapport er genereret af en AI-assistent og er ment som generel vejledning. Rapporten erstatter ikke individuel juridisk rådgivning fra en advokat eller juridisk rådgiver. Retsklar påtager sig intet ansvar for beslutninger truffet på baggrund af denne rapport. Kontakt en juridisk rådgiver for specifik rådgivning om din situation.
+  - contentinfo [ref=e81]:
+    - generic [ref=e82]:
+      - generic [ref=e83]:
+        - generic [ref=e84]:
+          - link "Retsklar .dk" [ref=e85] [cursor=pointer]:
+            - /url: /
+            - img [ref=e86]
+            - generic [ref=e88]: Retsklar
+            - generic [ref=e89]: .dk
+          - paragraph [ref=e90]: Retsklar — juridisk compliance-tjek for virksomheder. Få overblik over din compliance-status på under 10 minutter.
+        - generic [ref=e91]:
+          - heading "Om" [level=4] [ref=e92]
+          - list [ref=e93]:
+            - listitem [ref=e94]:
+              - link "Sådan virker det" [ref=e95] [cursor=pointer]:
+                - /url: /#hvordan
+            - listitem [ref=e96]:
+              - link "Priser" [ref=e97] [cursor=pointer]:
+                - /url: /#priser
+            - listitem [ref=e98]:
+              - link "FAQ" [ref=e99] [cursor=pointer]:
+                - /url: /#faq
+        - generic [ref=e100]:
+          - heading "Juridisk" [level=4] [ref=e101]
+          - list [ref=e102]:
+            - listitem [ref=e103]:
+              - link "Privatlivspolitik" [ref=e104] [cursor=pointer]:
+                - /url: /privatlivspolitik
+            - listitem [ref=e105]:
+              - link "Handelsbetingelser" [ref=e106] [cursor=pointer]:
+                - /url: /handelsbetingelser
+            - listitem [ref=e107]:
+              - link "Cookiepolitik" [ref=e108] [cursor=pointer]:
+                - /url: /cookiepolitik
+        - generic [ref=e109]:
+          - heading "Kontakt" [level=4] [ref=e110]
+          - list [ref=e111]:
+            - listitem [ref=e112]: kontakt@retsklar.dk
+            - listitem [ref=e113]: "CVR: XX XX XX XX"
+      - paragraph [ref=e115]: © 2026 Retsklar. Alle rettigheder forbeholdes. AI-genererede rapporter erstatter ikke individuel juridisk rådgivning.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e121] [cursor=pointer]:
+    - img [ref=e122]
+  - alert [ref=e125]: Retsklar — Er din virksomhed juridisk på plads?
+```

@@ -1,0 +1,13 @@
+Se CURSOR-SPEC.md for fuld teknisk specifikation.
+
+Regler:
+- Alt UI og indhold er på dansk.
+- Al kode, kommentarer og variabelnavne er på engelsk.
+- Følg eksisterende patterns og mappestruktur.
+- Brug konfig-først: ingen hårdkodede værdier, URLs eller secrets.
+- Alle nye UI-komponenter skal have Loading / Empty / Error states.
+- Brug shadcn/ui komponenter fra src/components/ui/.
+- Score-farver: Rød=#EF4444, Gul=#F59E0B, Grøn=#22C55E.
+- Wizard-data er defineret i src/config/wizard-questions.ts.
+- AI-prompts er i src/lib/ai/prompts/.
+- Supabase-klienter bruger lazy initialisering.
