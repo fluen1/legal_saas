@@ -47,14 +47,6 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/lovguide"
-                  className="transition-colors hover:text-text-primary"
-                >
-                  Lovguide
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/ressourcer"
                   className="transition-colors hover:text-text-primary"
                 >

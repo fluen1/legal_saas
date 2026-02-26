@@ -10,7 +10,6 @@ const NAV_LINKS = [
   { href: '/#hvordan', label: 'Sådan virker det' },
   { href: '/#priser', label: 'Priser' },
   { href: '/blog', label: 'Blog' },
-  { href: '/lovguide', label: 'Lovguide' },
   { href: '/ressourcer', label: 'Ressourcer' },
 ];
 
