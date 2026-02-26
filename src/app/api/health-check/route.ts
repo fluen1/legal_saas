@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { callClaude } from '@/lib/ai/claude';
 import {
@@ -12,6 +12,7 @@ import { sendWelcomeReportEmail } from '@/lib/email/resend';
 import { runHealthCheckPipeline } from '@/lib/ai/pipeline';
 import { mapVerifiedReportToHealthCheck } from '@/lib/ai/map-verified-to-report';
 import { WizardAnswers } from '@/types/wizard';
+import type { HealthCheckReport } from '@/types/report';
 
 const USE_MULTI_AGENT = process.env.USE_MULTI_AGENT_PIPELINE === 'true';
 
@@ -20,6 +21,98 @@ interface HealthCheckRequestBody {
   email: string;
   tier: 'free' | 'full';
   healthCheckId?: string;
+}
+
+/**
+ * Runs the full analysis pipeline in the background (called via after()).
+ * Updates Supabase with progress and final report.
+ */
+async function runPipelineBackground(
+  checkId: string,
+  answers: WizardAnswers,
+  email: string,
+  tier: string
+) {
+  const supabase = createAdminClient();
+
+  try {
+    let report: HealthCheckReport;
+
+    if (USE_MULTI_AGENT) {
+      const verified = await runHealthCheckPipeline(answers, email, async (status, step) => {
+        await supabase
+          .from('health_checks')
+          .update({
+            analysis_status: status,
+            analysis_step: step,
+          } as Record<string, unknown>)
+          .eq('id', checkId);
+      });
+      report = mapVerifiedReportToHealthCheck(verified);
+    } else {
+      await supabase
+        .from('health_checks')
+        .update({ analysis_status: 'analyzing', analysis_step: 'Analyserer...' } as Record<string, unknown>)
+        .eq('id', checkId);
+
+      const systemPrompt = buildHealthCheckSystemPrompt();
+      const userPrompt = buildHealthCheckUserPrompt(answers);
+      const rawResponse = await callClaude({ systemPrompt, userPrompt, maxTokens: 16384 });
+
+      let jsonData: unknown;
+      try {
+        jsonData = await parseClaudeJSON(rawResponse);
+      } catch (parseError) {
+        console.error('[Health Check] JSON parse failed:', parseError);
+        await supabase.from('health_checks').update({
+          status: 'failed', analysis_status: 'error',
+        } as Record<string, unknown>).eq('id', checkId);
+        return;
+      }
+
+      const parsed = HealthCheckOutputSchema.safeParse(jsonData);
+      if (!parsed.success) {
+        console.error('AI output validation failed:', parsed.error.format());
+        await supabase.from('health_checks').update({
+          status: 'failed', analysis_status: 'error',
+        } as Record<string, unknown>).eq('id', checkId);
+        return;
+      }
+
+      report = mapAIOutputToReport(parsed.data);
+    }
+
+    await supabase
+      .from('health_checks')
+      .update({
+        report: report as unknown as Record<string, unknown>,
+        overall_score: report.overallScore,
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        analysis_status: 'complete',
+        analysis_step: null,
+      } as Record<string, unknown>)
+      .eq('id', checkId);
+
+    const totalIssues = report.areas.reduce((sum, a) => sum + a.issues.length, 0);
+
+    if (tier === 'free') {
+      sendWelcomeReportEmail({
+        to: email,
+        reportId: checkId,
+        score: report.overallScore,
+        issueCount: totalIssues,
+      }).catch((err) =>
+        console.error('[Health Check] Velkomst-email fejlede:', err)
+      );
+    }
+  } catch (error) {
+    console.error('[Health Check] Pipeline failed:', error);
+    await supabase
+      .from('health_checks')
+      .update({ status: 'failed', analysis_status: 'error' } as Record<string, unknown>)
+      .eq('id', checkId);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -67,94 +160,10 @@ export async function POST(request: NextRequest) {
         .eq('id', checkId);
     }
 
-    let report: Awaited<ReturnType<typeof mapAIOutputToReport>>;
+    // Run pipeline in background — response returns immediately
+    after(() => runPipelineBackground(checkId!, answers, email, tier));
 
-    if (USE_MULTI_AGENT) {
-      try {
-        const verified = await runHealthCheckPipeline(answers, email, async (status, step) => {
-          await supabase
-            .from('health_checks')
-            .update({
-              analysis_status: status,
-              analysis_step: step,
-            } as Record<string, unknown>)
-            .eq('id', checkId);
-        });
-        report = mapVerifiedReportToHealthCheck(verified);
-      } catch (pipeError) {
-        console.error('[Health Check] Multi-agent pipeline failed:', pipeError);
-        await supabase
-          .from('health_checks')
-          .update({ status: 'failed', analysis_status: 'error' } as Record<string, unknown>)
-          .eq('id', checkId);
-        return NextResponse.json({ error: 'AI-analyse fejlede. Prøv igen.' }, { status: 500 });
-      }
-    } else {
-      const systemPrompt = buildHealthCheckSystemPrompt();
-      const userPrompt = buildHealthCheckUserPrompt(answers);
-
-      const rawResponse = await callClaude({ systemPrompt, userPrompt, maxTokens: 16384 });
-
-      let jsonData: unknown;
-      try {
-        jsonData = await parseClaudeJSON(rawResponse);
-      } catch (parseError) {
-        console.error('[Health Check] JSON parse failed after extraction and retry:', parseError);
-        await supabase.from('health_checks').update({ status: 'failed' }).eq('id', checkId);
-        return NextResponse.json({ error: 'AI-analyse fejlede (ugyldigt format). Prøv igen.' }, { status: 500 });
-      }
-
-      const parsed = HealthCheckOutputSchema.safeParse(jsonData);
-      if (!parsed.success) {
-        console.error('AI output validation failed:', parsed.error.format());
-        await supabase.from('health_checks').update({ status: 'failed' }).eq('id', checkId);
-        return NextResponse.json({ error: 'AI-analyse fejlede. Prøv igen.' }, { status: 500 });
-      }
-
-      report = mapAIOutputToReport(parsed.data);
-    }
-
-    await supabase
-      .from('health_checks')
-      .update({
-        report: report as unknown as Record<string, unknown>,
-        overall_score: report.overallScore,
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        analysis_status: 'complete',
-        analysis_step: null,
-      } as Record<string, unknown>)
-      .eq('id', checkId);
-
-    const totalIssues = report.areas.reduce((sum, a) => sum + a.issues.length, 0);
-
-    const responseReport =
-      tier === 'free'
-        ? {
-            overallScore: report.overallScore,
-            scoreExplanation: report.scoreExplanation,
-            areas: report.areas.map((a) => ({
-              name: a.name,
-              score: a.score,
-              status: a.status,
-              issueCount: a.issues.length,
-            })),
-            totalIssues,
-          }
-        : report;
-
-    if (tier === 'free') {
-      sendWelcomeReportEmail({
-        to: email,
-        reportId: checkId!,
-        score: report.overallScore,
-        issueCount: totalIssues,
-      }).catch((err) =>
-        console.error('[Health Check] Velkomst-email fejlede:', err)
-      );
-    }
-
-    return NextResponse.json({ healthCheckId: checkId, report: responseReport });
+    return NextResponse.json({ healthCheckId: checkId });
   } catch (error) {
     console.error('Health check API error:', error);
     return NextResponse.json(

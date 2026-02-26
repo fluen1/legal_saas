@@ -48,7 +48,8 @@ export async function runHealthCheckPipeline(
     "Gennemgår Kontrakter & Kommercielle Aftaler...",
     "Gennemgår IP & Immaterielle Rettigheder...",
   ];
-  await onStatus?.("analyzing", "Analyserer alle juridiske områder parallelt...");
+  await onStatus?.("analyzing", "Analyserer alle juridiske områder...");
+  let completedSpecialists = 0;
   const specialistPromises = AREA_CONFIGS.map((config, i) => {
     const stagger = i * 2000;
     return delay(stagger).then(async () => {
@@ -56,7 +57,8 @@ export async function runHealthCheckPipeline(
       const start = Date.now();
       const result = await runSpecialistAgent(config, wizardAnswers, profile);
       timings.specialists[config.name] = (Date.now() - start) / 1000;
-      await onStatus?.("analyzing", stepNames[i] ?? config.name);
+      completedSpecialists++;
+      await onStatus?.(`analyzing_${completedSpecialists}`, stepNames[i] ?? config.name);
       return result;
     });
   });

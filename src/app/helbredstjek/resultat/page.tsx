@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/shared/Header';
 import { Footer } from '@/components/shared/Footer';
@@ -34,6 +34,65 @@ function ResultatContent() {
   const [report, setReport] = useState<HealthCheckReport | null>(null);
   const [freeReport, setFreeReport] = useState<FreeReport | null>(null);
   const [isPaid, setIsPaid] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const fetchReport = useCallback(async () => {
+    if (!healthCheckId) return;
+
+    try {
+      const res = await fetch(`/api/health-check/${healthCheckId}`);
+      if (!res.ok) {
+        setError('Kunne ikke hente rapport');
+        setLoading(false);
+        setIsProcessing(false);
+        return;
+      }
+      const data = await res.json();
+
+      if (data.status === 'processing') {
+        setIsProcessing(true);
+        setLoading(false);
+        setTimeout(fetchReport, 3000);
+        return;
+      }
+
+      if (data.status === 'failed') {
+        setError('Analysen fejlede. Prøv venligst igen.');
+        setLoading(false);
+        setIsProcessing(false);
+        return;
+      }
+
+      // Report is ready
+      setIsProcessing(false);
+
+      if (data.payment_status === 'paid') {
+        setIsPaid(true);
+      }
+
+      if (data.tier === 'free' && !paid) {
+        const fullReport = data.report as unknown as HealthCheckReport;
+        setFreeReport({
+          overallScore: fullReport.overallScore,
+          scoreExplanation: fullReport.scoreExplanation,
+          areas: fullReport.areas.map((a) => ({
+            name: a.name,
+            score: a.score,
+            status: a.status,
+            issueCount: a.issues.length,
+          })),
+          totalIssues: fullReport.areas.reduce((sum, a) => sum + a.issues.length, 0),
+        });
+      } else {
+        setReport(data.report as unknown as HealthCheckReport);
+      }
+    } catch {
+      setError('Noget gik galt');
+      setIsProcessing(false);
+    }
+
+    setLoading(false);
+  }, [healthCheckId, paid]);
 
   useEffect(() => {
     if (!healthCheckId) {
@@ -42,76 +101,29 @@ function ResultatContent() {
       return;
     }
 
-    async function fetchReport() {
-      try {
-        const res = await fetch(`/api/health-check/${healthCheckId}`);
-        if (!res.ok) {
-          setError('Kunne ikke hente rapport');
-          return;
-        }
-        const data = await res.json();
-
-        if (data.status === 'processing') {
-          setTimeout(fetchReport, 3000);
-          return;
-        }
-
-        if (data.status === 'failed') {
-          setError('Analysen fejlede. Prøv venligst igen.');
-          return;
-        }
-
-        if (data.payment_status === 'paid') {
-          setIsPaid(true);
-        }
-
-        if (data.tier === 'free' && !paid) {
-          const fullReport = data.report as unknown as HealthCheckReport;
-          setFreeReport({
-            overallScore: fullReport.overallScore,
-            scoreExplanation: fullReport.scoreExplanation,
-            areas: fullReport.areas.map((a) => ({
-              name: a.name,
-              score: a.score,
-              status: a.status,
-              issueCount: a.issues.length,
-            })),
-            totalIssues: fullReport.areas.reduce((sum, a) => sum + a.issues.length, 0),
-          });
-        } else {
-          setReport(data.report as unknown as HealthCheckReport);
-        }
-      } catch {
-        setError('Noget gik galt');
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchReport();
-  }, [healthCheckId, paid]);
+  }, [healthCheckId, fetchReport]);
 
-  if (loading && healthCheckId) {
+  // Show progress indicator while processing
+  if (loading || isProcessing) {
     return (
       <main className="flex min-h-[60vh] items-center justify-center bg-off-white px-6 py-12">
         <div className="w-full max-w-md">
-          <AnalysisProgress healthCheckId={healthCheckId} />
-          <p className="mt-4 text-center text-sm text-text-secondary">
-            Dette kan tage op til 90 sekunder
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  if (loading) {
-    return (
-      <main className="flex min-h-[60vh] items-center justify-center bg-off-white">
-        <div className="text-center">
-          <Loader2 className="mx-auto size-10 animate-spin text-deep-blue" />
-          <p className="mt-4 font-serif text-lg text-text-primary">
-            Indlæser...
-          </p>
+          {healthCheckId ? (
+            <>
+              <AnalysisProgress healthCheckId={healthCheckId} />
+              <p className="mt-4 text-center text-sm text-text-secondary">
+                Dette kan tage op til 5 minutter
+              </p>
+            </>
+          ) : (
+            <div className="text-center">
+              <Loader2 className="mx-auto size-10 animate-spin text-deep-blue" />
+              <p className="mt-4 font-serif text-lg text-text-primary">
+                Indlæser...
+              </p>
+            </div>
+          )}
         </div>
       </main>
     );
