@@ -96,7 +96,8 @@ export function Footer() {
             </h4>
             <ul className="space-y-2.5 text-sm text-text-secondary">
               <li>kontakt@retsklar.dk</li>
-              {/* CVR tilføjes når virksomheden er registreret */}
+              <li>CVR: 42767107</li>
+              <li>C/O Erhvervsstyrelsen<br />Langelinie All&eacute; 17</li>
             </ul>
           </div>
         </div>

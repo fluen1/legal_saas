@@ -63,7 +63,7 @@ export function ReportExample() {
                   Eksempel A/S
                 </p>
                 <p className="text-xs text-text-secondary">
-                  Genereret 19. februar 2026
+                  Februar 2026
                 </p>
               </div>
               <div className="rounded-full bg-score-yellow/15 px-4 py-1.5">

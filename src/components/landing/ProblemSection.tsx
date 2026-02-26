@@ -1,8 +1,8 @@
 const STATS = [
   {
-    figure: '73%',
+    figure: '40%',
     description:
-      'af danske SMV\'er mangler en opdateret privatlivspolitik',
+      'af danske SMV\'er har et for lavt digitalt sikkerhedsniveau',
   },
   {
     figure: '4%',
@@ -10,9 +10,9 @@ const STATS = [
       'af årlig omsætning — den maksimale bøde for GDPR-overtrædelser',
   },
   {
-    figure: '8/10',
+    figure: '72t',
     description:
-      'virksomheder har mangler i deres ansættelseskontrakter',
+      'Frist for at anmelde databrud til Datatilsynet',
   },
 ];
 
@@ -43,7 +43,7 @@ export function ProblemSection() {
         </div>
 
         <p className="mt-8 text-center text-xs text-text-secondary">
-          Baseret på data fra Datatilsynet og brancheanalyser
+          Baseret på officielle kilder: Styrelsen for Samfundssikkerhed og EU&apos;s databeskyttelsesforordning (GDPR)
         </p>
       </div>
     </section>

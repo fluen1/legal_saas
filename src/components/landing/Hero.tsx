@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Star, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ShieldCheck } from 'lucide-react';
 
 function ReportMockup() {
   const areas = [
@@ -83,8 +83,8 @@ export function Hero() {
             </h1>
 
             <p className="mt-6 max-w-lg text-lg leading-relaxed text-text-secondary">
-              Få et komplet juridisk compliance-tjek af din virksomhed på 5
-              minutter — og find ud af hvad der mangler, inden det koster dig
+              Få et komplet juridisk compliance-tjek af din virksomhed på under
+              10 minutter — og find ud af hvad der mangler, inden det koster dig
               dyrt.
             </p>
 
@@ -108,21 +108,6 @@ export function Hero() {
               Se eksempel-rapport
             </Link>
 
-            <div className="mt-8 flex items-center gap-3">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="size-4 fill-score-yellow text-score-yellow"
-                  />
-                ))}
-              </div>
-              <p className="text-sm text-text-secondary">
-                Allerede brugt af{' '}
-                <span className="font-semibold text-text-primary">100+</span>{' '}
-                danske virksomheder
-              </p>
-            </div>
           </div>
 
           <div className="flex justify-center lg:justify-end">

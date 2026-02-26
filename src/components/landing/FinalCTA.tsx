@@ -10,7 +10,7 @@ export function FinalCTA() {
           Klar til at få overblik over din juridiske situation?
         </h2>
         <p className="mt-4 text-lg text-white/70">
-          Det tager 5 minutter og er 100% gratis at starte
+          Det tager under 10 minutter og er 100% gratis at starte
         </p>
 
         <div className="mt-10">

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { DM_Sans, DM_Serif_Display } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
+import { CookieBanner } from '@/components/shared/CookieBanner';
 import './globals.css';
 
 const dmSans = DM_Sans({
@@ -38,6 +39,7 @@ export default function RootLayout({
         className={`${dmSans.variable} ${dmSerif.variable} font-sans antialiased`}
       >
         {children}
+        <CookieBanner />
         <Toaster position="bottom-right" />
       </body>
     </html>

@@ -47,7 +47,7 @@ const SECTIONS = [
     title: '4. Huslejenævnet',
     items: [
       'Kan du ikke blive enig med udlejer, kan du klage til Huslejenævnet',
-      'Gebyret er 357 kr (2026) — udlejer betaler 6.827 kr hvis du vinder',
+      'Gebyret er 367 kr (2026) — udlejer betaler 7.027 kr hvis du vinder',
       'Du skal klage inden 12 måneder efter fraflytning',
       'Nævnet kan nedsætte eller fjerne udlejers krav',
       'Behandlingstiden er typisk 3-6 måneder',
