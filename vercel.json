@@ -2,7 +2,7 @@
   "framework": "nextjs",
   "regions": ["arn1"],
   "functions": {
-    "src/app/api/health-check/route.ts": { "maxDuration": 60 },
+    "src/app/api/health-check/route.ts": { "maxDuration": 300 },
     "src/app/api/report/*/pdf/route.ts": { "maxDuration": 60 },
     "src/app/api/admin/update-laws/route.ts": { "maxDuration": 120 }
   },
