@@ -1,9 +1,8 @@
 /**
  * Fraflytningsguide — DOCX builder
  */
-import { AlignmentType, Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
+import { Document, Packer, Paragraph, TextRun } from "docx";
 import {
-  DS,
   getDocStyles,
   getNumbering,
   sectionProps,
@@ -177,16 +176,9 @@ export async function buildFraflytningsguide(): Promise<Buffer> {
           pageBreak(),
 
           new Paragraph({
-            heading: HeadingLevel.HEADING_1,
-            alignment: AlignmentType.CENTER,
+            style: "DocumentTitle",
             children: [
-              new TextRun({
-                text: "Komplet fraflytnings-tjekliste",
-                font: DS.FONT_HEADING,
-                size: 30,
-                bold: true,
-                color: DS.PRIMARY,
-              }),
+              new TextRun({ text: "Komplet fraflytnings-tjekliste" }),
             ],
           }),
 

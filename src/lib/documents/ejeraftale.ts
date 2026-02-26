@@ -1,13 +1,7 @@
 /**
  * Ejeraftale Skabelon — DOCX builder
  */
-import {
-  AlignmentType,
-  Document,
-  Packer,
-  Paragraph,
-  TextRun,
-} from "docx";
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType } from "docx";
 import {
   DS,
   getDocStyles,
@@ -28,7 +22,6 @@ import {
   ctaBox,
   noBorders,
 } from "./design-system";
-import { Table, TableRow, TableCell, WidthType } from "docx";
 
 export async function buildEjeraftale(): Promise<Buffer> {
   const doc = new Document({
@@ -56,14 +49,9 @@ export async function buildEjeraftale(): Promise<Buffer> {
           ),
 
           new Paragraph({
-            spacing: { after: 200 },
+            style: "Subtitle",
             children: [
-              new TextRun({
-                text: "Mellem nedenst\u00E5ende parter er der dags dato indg\u00E5et f\u00F8lgende ejeraftale vedr\u00F8rende det i punkt 2 n\u00E6vnte selskab.",
-                italics: true,
-                size: 22,
-                color: DS.MEDIUM,
-              }),
+              new TextRun({ text: "Mellem nedenst\u00E5ende parter er der dags dato indg\u00E5et f\u00F8lgende ejeraftale vedr\u00F8rende det i punkt 2 n\u00E6vnte selskab." }),
             ],
           }),
 
@@ -76,12 +64,7 @@ export async function buildEjeraftale(): Promise<Buffer> {
           new Paragraph({
             spacing: { before: 200, after: 80 },
             children: [
-              new TextRun({
-                text: "Ejer 1",
-                bold: true,
-                size: 22,
-                color: DS.DARK,
-              }),
+              new TextRun({ text: "Ejer 1", style: "BoldPrefixChar" }),
             ],
           }),
           fillField("Navn"),
@@ -91,12 +74,7 @@ export async function buildEjeraftale(): Promise<Buffer> {
           new Paragraph({
             spacing: { before: 200, after: 80 },
             children: [
-              new TextRun({
-                text: "Ejer 2",
-                bold: true,
-                size: 22,
-                color: DS.DARK,
-              }),
+              new TextRun({ text: "Ejer 2", style: "BoldPrefixChar" }),
             ],
           }),
           fillField("Navn"),
@@ -104,14 +82,9 @@ export async function buildEjeraftale(): Promise<Buffer> {
           fillField("CPR/CVR-nr."),
 
           new Paragraph({
-            style: "SmallText",
+            style: "DisclaimerText",
             children: [
-              new TextRun({
-                text: '(Tilf\u00F8j yderligere ejere efter behov. Herefter samlet ben\u00E6vnt "Parterne".)',
-                italics: true,
-                size: 20,
-                color: DS.MEDIUM,
-              }),
+              new TextRun({ text: '(Tilf\u00F8j yderligere ejere efter behov. Herefter samlet ben\u00E6vnt "Parterne".)' }),
             ],
           }),
 
@@ -296,12 +269,7 @@ export async function buildEjeraftale(): Promise<Buffer> {
           new Paragraph({
             spacing: { before: 300, after: 80 },
             children: [
-              new TextRun({
-                text: "Ejer 1",
-                bold: true,
-                size: 22,
-                color: DS.DARK,
-              }),
+              new TextRun({ text: "Ejer 1", style: "BoldPrefixChar" }),
             ],
           }),
           fillField("Underskrift"),
@@ -310,12 +278,7 @@ export async function buildEjeraftale(): Promise<Buffer> {
           new Paragraph({
             spacing: { before: 300, after: 80 },
             children: [
-              new TextRun({
-                text: "Ejer 2",
-                bold: true,
-                size: 22,
-                color: DS.DARK,
-              }),
+              new TextRun({ text: "Ejer 2", style: "BoldPrefixChar" }),
             ],
           }),
           fillField("Underskrift"),

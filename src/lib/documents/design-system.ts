@@ -1,6 +1,7 @@
 /**
  * Retsklar Document Design System
- * Shared styles, constants, and components for all DOCX documents.
+ * All formatting via document-level styles — zero inline run formatting.
+ * Authoritative source: RETSKLAR-DOCX-SPEC.md
  */
 import {
   AlignmentType,
@@ -8,6 +9,7 @@ import {
   ExternalHyperlink,
   Footer,
   Header,
+  HeadingLevel,
   LevelFormat,
   PageBreak,
   PageNumber,
@@ -17,12 +19,11 @@ import {
   TableCell,
   TableRow,
   TextRun,
+  UnderlineType,
   WidthType,
   type INumberingOptions,
-  type IParagraphStyleOptions,
   type ISectionPropertiesOptions,
   type IStylesOptions,
-  type ITableCellOptions,
 } from "docx";
 
 /* ------------------------------------------------------------------ */
@@ -30,27 +31,23 @@ import {
 /* ------------------------------------------------------------------ */
 
 export const DS = {
-  // Colours
-  PRIMARY: "6D28D9",
-  PRIMARY_LIGHT: "EDE9FE",
-  PRIMARY_MID: "8B5CF6",
-  SECONDARY: "2563EB",
-  SECONDARY_LT: "DBEAFE",
+  // Colours (pixel-matched to retsklar.dk — navy, not violet)
+  NAVY: "0F172A",
+  NAVY_MID: "1E293B",
+  ACCENT: "1D4ED8",
+  ACCENT_MID: "2563EB",
+  ACCENT_LIGHT: "DBEAFE",
+  ACCENT_FAINT: "EFF6FF",
   TEAL: "0D9488",
   TEAL_LIGHT: "CCFBF1",
   WARNING: "EA580C",
   WARNING_LT: "FFF7ED",
-  DARK: "1E293B",
+  DARK: "0F172A",
   MEDIUM: "475569",
   LIGHT: "94A3B8",
   BORDER: "E2E8F0",
   BG_LIGHT: "F8FAFC",
   WHITE: "FFFFFF",
-
-  // Fonts
-  FONT_HEADING: "Georgia",
-  FONT_BODY: "Calibri",
-  FONT_SYMBOL: "Segoe UI Symbol",
 
   // Page (A4 DXA)
   PAGE_W: 11906,
@@ -59,32 +56,22 @@ export const DS = {
   MARGIN_BOTTOM: 1200,
   MARGIN_LEFT: 1300,
   MARGIN_RIGHT: 1300,
-  CONTENT_W: 9306, // PAGE_W - MARGIN_LEFT - MARGIN_RIGHT
+  CONTENT_W: 9306,
 } as const;
 
 /* ------------------------------------------------------------------ */
-/*  Borders helpers                                                    */
+/*  Borders                                                            */
 /* ------------------------------------------------------------------ */
 
-const thinBorder = (color = DS.BORDER) => ({
-  style: BorderStyle.SINGLE,
-  size: 1,
-  color,
-});
-
-const noBorder = {
-  style: BorderStyle.NONE,
-  size: 0,
-  color: DS.WHITE,
-};
+const thinBorder = { style: BorderStyle.SINGLE, size: 1, color: DS.BORDER };
+const noBorder = { style: BorderStyle.NONE, size: 0, color: DS.WHITE };
 
 export const borders = {
-  top: thinBorder(),
-  bottom: thinBorder(),
-  left: thinBorder(),
-  right: thinBorder(),
+  top: thinBorder,
+  bottom: thinBorder,
+  left: thinBorder,
+  right: thinBorder,
 };
-
 export const noBorders = {
   top: noBorder,
   bottom: noBorder,
@@ -93,79 +80,195 @@ export const noBorders = {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Document-level styles                                              */
+/*  Document-level styles (§5 + §6)                                    */
 /* ------------------------------------------------------------------ */
 
 export function getDocStyles(): IStylesOptions {
   return {
     default: {
       document: {
-        run: { font: DS.FONT_BODY, size: 22, color: DS.DARK },
+        run: { font: "Calibri", size: 22, color: DS.DARK },
         paragraph: { spacing: { after: 160, line: 276 } },
-      },
-      hyperlink: {
-        run: { color: DS.SECONDARY, underline: {} },
       },
     },
     paragraphStyles: [
+      // --- Headings ---
       {
-        id: "Heading1",
-        name: "Heading 1",
-        basedOn: "Normal",
-        next: "Normal",
-        quickFormat: true,
-        run: { size: 30, bold: true, font: DS.FONT_HEADING, color: DS.PRIMARY },
-        paragraph: {
-          spacing: { before: 360, after: 200 },
-          outlineLevel: 0,
-        },
-      } as IParagraphStyleOptions,
+        id: "Heading1", name: "Heading 1",
+        basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 30, bold: true, font: "Georgia", color: DS.NAVY },
+        paragraph: { spacing: { before: 360, after: 200 }, outlineLevel: 0 },
+      },
       {
-        id: "Heading2",
-        name: "Heading 2",
-        basedOn: "Normal",
-        next: "Normal",
-        quickFormat: true,
-        run: { size: 26, bold: true, font: DS.FONT_HEADING, color: DS.PRIMARY },
-        paragraph: {
-          spacing: { before: 280, after: 160 },
-          outlineLevel: 1,
-        },
-      } as IParagraphStyleOptions,
+        id: "Heading2", name: "Heading 2",
+        basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 26, bold: true, font: "Georgia", color: DS.NAVY },
+        paragraph: { spacing: { before: 280, after: 160 }, outlineLevel: 1 },
+      },
       {
-        id: "Heading3",
-        name: "Heading 3",
-        basedOn: "Normal",
-        next: "Normal",
-        quickFormat: true,
-        run: { size: 24, bold: true, font: DS.FONT_BODY, color: DS.DARK },
-        paragraph: {
-          spacing: { before: 200, after: 120 },
-          outlineLevel: 2,
-        },
-      } as IParagraphStyleOptions,
+        id: "Heading3", name: "Heading 3",
+        basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 24, bold: true, font: "Calibri", color: DS.NAVY },
+        paragraph: { spacing: { before: 200, after: 120 }, outlineLevel: 2 },
+      },
+      // --- Title page ---
       {
-        id: "SmallText",
-        name: "Small Text",
-        basedOn: "Normal",
-        quickFormat: true,
+        id: "DocumentTitle", name: "Document Title",
+        basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 36, bold: true, font: "Georgia", color: DS.NAVY },
+        paragraph: { spacing: { before: 600, after: 80 }, alignment: AlignmentType.CENTER },
+      },
+      {
+        id: "Subtitle", name: "Subtitle",
+        basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 22, italics: true, color: DS.MEDIUM },
+        paragraph: { spacing: { after: 200 }, alignment: AlignmentType.CENTER },
+      },
+      // --- Text variants ---
+      {
+        id: "SmallText", name: "Small Text",
+        basedOn: "Normal", quickFormat: true,
         run: { size: 20, color: DS.MEDIUM },
         paragraph: { spacing: { after: 80 } },
-      } as IParagraphStyleOptions,
+      },
       {
-        id: "TinyText",
-        name: "Tiny Text",
-        basedOn: "Normal",
-        quickFormat: true,
+        id: "TinyText", name: "Tiny Text",
+        basedOn: "Normal", quickFormat: true,
         run: { size: 18, color: DS.LIGHT },
         paragraph: { spacing: { after: 60 } },
-      } as IParagraphStyleOptions,
+      },
+      // --- Boxes ---
+      {
+        id: "BoxTitle", name: "Box Title",
+        basedOn: "Normal", quickFormat: true,
+        run: { size: 22, bold: true },
+        paragraph: { spacing: { after: 60 } },
+      },
+      {
+        id: "BoxBody", name: "Box Body",
+        basedOn: "Normal", quickFormat: true,
+        run: { size: 20, italics: true, color: DS.MEDIUM },
+        paragraph: { spacing: { after: 0 } },
+      },
+      {
+        id: "DisclaimerText", name: "Disclaimer Text",
+        basedOn: "Normal", quickFormat: true,
+        run: { size: 20, italics: true, color: DS.MEDIUM },
+        paragraph: { spacing: { after: 80 } },
+      },
+      // --- CTA ---
+      {
+        id: "CTATitle", name: "CTA Title",
+        basedOn: "Normal", quickFormat: true,
+        run: { size: 26, bold: true, font: "Georgia", color: DS.NAVY },
+        paragraph: { spacing: { after: 80 }, alignment: AlignmentType.CENTER },
+      },
+      // --- Lists ---
+      {
+        id: "CheckboxItem", name: "Checkbox Item",
+        basedOn: "Normal", quickFormat: true,
+        run: { size: 22, color: DS.DARK },
+        paragraph: { spacing: { after: 80 } },
+      },
+      // --- Tables ---
+      {
+        id: "TableHeaderPara", name: "Table Header",
+        basedOn: "Normal", quickFormat: true,
+        run: { size: 22, bold: true, color: DS.WHITE },
+        paragraph: { spacing: { after: 0 } },
+      },
+      {
+        id: "TableCellPara", name: "Table Cell",
+        basedOn: "Normal", quickFormat: true,
+        run: { size: 22, color: DS.DARK },
+        paragraph: { spacing: { after: 0 } },
+      },
+    ],
+    characterStyles: [
+      // --- Branding (header) ---
+      {
+        id: "BrandNameChar", name: "Brand Name",
+        basedOn: "DefaultParagraphFont",
+        run: { font: "Georgia", size: 28, bold: true, color: DS.NAVY },
+      },
+      {
+        id: "BrandSuffixChar", name: "Brand Suffix",
+        basedOn: "DefaultParagraphFont",
+        run: { font: "Georgia", size: 28, color: DS.LIGHT },
+      },
+      // --- Branding (title page, large) ---
+      {
+        id: "BrandNameLargeChar", name: "Brand Name Large",
+        basedOn: "DefaultParagraphFont",
+        run: { font: "Georgia", size: 48, bold: true, color: DS.NAVY },
+      },
+      {
+        id: "BrandSuffixLargeChar", name: "Brand Suffix Large",
+        basedOn: "DefaultParagraphFont",
+        run: { font: "Georgia", size: 48, color: DS.LIGHT },
+      },
+      // --- Section numbers ---
+      {
+        id: "AccentNumberChar", name: "Accent Number",
+        basedOn: "DefaultParagraphFont",
+        run: { font: "Georgia", size: 30, bold: true, color: DS.ACCENT },
+      },
+      // --- Box titles ---
+      {
+        id: "BoxTitleAccentChar", name: "Box Title Accent",
+        basedOn: "DefaultParagraphFont",
+        run: { bold: true, color: DS.ACCENT },
+      },
+      {
+        id: "BoxTitleWarningChar", name: "Box Title Warning",
+        basedOn: "DefaultParagraphFont",
+        run: { bold: true, color: DS.WARNING },
+      },
+      {
+        id: "BoxTitleDisclaimerChar", name: "Box Title Disclaimer",
+        basedOn: "DefaultParagraphFont",
+        run: { bold: true, color: DS.MEDIUM },
+      },
+      // --- Hyperlinks ---
+      {
+        id: "HyperlinkChar", name: "Hyperlink",
+        basedOn: "DefaultParagraphFont",
+        run: { color: DS.ACCENT_MID, underline: { type: UnderlineType.SINGLE } },
+      },
+      // --- Footer ---
+      {
+        id: "FooterBrandChar", name: "Footer Brand",
+        basedOn: "DefaultParagraphFont",
+        run: { size: 18, bold: true, color: DS.NAVY },
+      },
+      {
+        id: "FooterLinkChar", name: "Footer Link",
+        basedOn: "DefaultParagraphFont",
+        run: { size: 18, color: DS.ACCENT_MID },
+      },
+      {
+        id: "FooterMutedChar", name: "Footer Muted",
+        basedOn: "DefaultParagraphFont",
+        run: { size: 18, color: DS.LIGHT },
+      },
+      // --- Fill field label ---
+      {
+        id: "FieldLabelChar", name: "Field Label",
+        basedOn: "DefaultParagraphFont",
+        run: { bold: true },
+      },
+      // --- Bullet bold prefix ---
+      {
+        id: "BoldPrefixChar", name: "Bold Prefix",
+        basedOn: "DefaultParagraphFont",
+        run: { bold: true },
+      },
     ],
   };
 }
 
 /* ------------------------------------------------------------------ */
-/*  Numbering                                                          */
+/*  Numbering (§7)                                                     */
 /* ------------------------------------------------------------------ */
 
 export function getNumbering(): INumberingOptions {
@@ -173,53 +276,37 @@ export function getNumbering(): INumberingOptions {
     config: [
       {
         reference: "bullets",
-        levels: [
-          {
-            level: 0,
-            format: LevelFormat.BULLET,
-            text: "\u2022",
-            alignment: AlignmentType.LEFT,
-            style: {
-              paragraph: { indent: { left: 540, hanging: 260 } },
-            },
-          },
-        ],
+        levels: [{
+          level: 0, format: LevelFormat.BULLET, text: "\u2022",
+          alignment: AlignmentType.LEFT,
+          style: { paragraph: { indent: { left: 540, hanging: 260 } } },
+        }],
       },
       {
         reference: "numbers",
-        levels: [
-          {
-            level: 0,
-            format: LevelFormat.DECIMAL,
-            text: "%1.",
-            alignment: AlignmentType.LEFT,
-            style: {
-              paragraph: { indent: { left: 540, hanging: 360 } },
-            },
-          },
-        ],
+        levels: [{
+          level: 0, format: LevelFormat.DECIMAL, text: "%1.",
+          alignment: AlignmentType.LEFT,
+          style: { paragraph: { indent: { left: 540, hanging: 360 } } },
+        }],
       },
       {
         reference: "checkboxEmpty",
-        levels: [
-          {
-            level: 0,
-            format: LevelFormat.BULLET,
-            text: "\u2610",
-            alignment: AlignmentType.LEFT,
-            style: {
-              paragraph: { indent: { left: 540, hanging: 360 } },
-              run: { font: DS.FONT_SYMBOL, size: 22 },
-            },
+        levels: [{
+          level: 0, format: LevelFormat.BULLET, text: "\u2610",
+          alignment: AlignmentType.LEFT,
+          style: {
+            paragraph: { indent: { left: 540, hanging: 360 } },
+            run: { font: "Segoe UI Symbol", size: 22 },
           },
-        ],
+        }],
       },
     ],
   };
 }
 
 /* ------------------------------------------------------------------ */
-/*  Section properties (page size, margins, header, footer)            */
+/*  Section properties                                                 */
 /* ------------------------------------------------------------------ */
 
 export function sectionProps(): ISectionPropertiesOptions {
@@ -236,42 +323,28 @@ export function sectionProps(): ISectionPropertiesOptions {
   };
 }
 
-/** Headers config — place at section level (sibling of `properties`) */
 export function sectionHeaders() {
   return { default: makeHeader() };
 }
 
-/** Footers config — place at section level (sibling of `properties`) */
 export function sectionFooters() {
   return { default: makeFooter() };
 }
+
+/* ------------------------------------------------------------------ */
+/*  Header / Footer (§8.1, §8.2) — char styles, no inline             */
+/* ------------------------------------------------------------------ */
 
 function makeHeader(): Header {
   return new Header({
     children: [
       new Paragraph({
         border: {
-          bottom: {
-            style: BorderStyle.SINGLE,
-            size: 6,
-            color: DS.PRIMARY,
-            space: 8,
-          },
+          bottom: { style: BorderStyle.SINGLE, size: 6, color: DS.ACCENT, space: 8 },
         },
         children: [
-          new TextRun({
-            text: "Retsklar",
-            font: DS.FONT_HEADING,
-            size: 28,
-            bold: true,
-            color: DS.PRIMARY,
-          }),
-          new TextRun({
-            text: ".dk",
-            font: DS.FONT_HEADING,
-            size: 28,
-            color: DS.LIGHT,
-          }),
+          new TextRun({ text: "Retsklar", style: "BrandNameChar" }),
+          new TextRun({ text: ".dk", style: "BrandSuffixChar" }),
         ],
       }),
     ],
@@ -284,38 +357,20 @@ function makeFooter(): Footer {
       new Paragraph({
         alignment: AlignmentType.CENTER,
         border: {
-          top: {
-            style: BorderStyle.SINGLE,
-            size: 4,
-            color: DS.BORDER,
-            space: 8,
-          },
+          top: { style: BorderStyle.SINGLE, size: 4, color: DS.BORDER, space: 8 },
         },
         children: [
-          new TextRun({ text: "Genereret af ", size: 18, color: DS.LIGHT }),
-          new TextRun({
-            text: "Retsklar.dk",
-            size: 18,
-            color: DS.PRIMARY,
-            bold: true,
-          }),
-          new TextRun({ text: " \u2022 ", size: 18, color: DS.LIGHT }),
-          new TextRun({
-            text: "kontakt@retsklar.dk",
-            size: 18,
-            color: DS.SECONDARY,
-          }),
+          new TextRun({ text: "Genereret af ", style: "FooterMutedChar" }),
+          new TextRun({ text: "Retsklar.dk", style: "FooterBrandChar" }),
+          new TextRun({ text: " \u2022 ", style: "FooterMutedChar" }),
+          new TextRun({ text: "kontakt@retsklar.dk", style: "FooterLinkChar" }),
         ],
       }),
       new Paragraph({
         alignment: AlignmentType.CENTER,
         children: [
-          new TextRun({ text: "Side ", size: 18, color: DS.LIGHT }),
-          new TextRun({
-            children: [PageNumber.CURRENT],
-            size: 18,
-            color: DS.LIGHT,
-          }),
+          new TextRun({ text: "Side ", style: "FooterMutedChar" }),
+          new TextRun({ children: [PageNumber.CURRENT], style: "FooterMutedChar" }),
         ],
       }),
     ],
@@ -323,365 +378,206 @@ function makeFooter(): Footer {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Reusable components                                                */
+/*  Components (§8) — all use styles, zero inline formatting           */
 /* ------------------------------------------------------------------ */
 
-/** Title-page hero block (centred, decorative) */
+/** §8.3 Title-page hero */
 export function titleHero(title: string, subtitle: string): Paragraph[] {
   return [
-    // Spacer
     new Paragraph({ spacing: { before: 600 }, children: [] }),
-    // Brand
     new Paragraph({
       alignment: AlignmentType.CENTER,
       children: [
-        new TextRun({
-          text: "Retsklar",
-          font: DS.FONT_HEADING,
-          size: 48,
-          bold: true,
-          color: DS.PRIMARY,
-        }),
-        new TextRun({
-          text: ".dk",
-          font: DS.FONT_HEADING,
-          size: 48,
-          color: DS.LIGHT,
-        }),
+        new TextRun({ text: "Retsklar", style: "BrandNameLargeChar" }),
+        new TextRun({ text: ".dk", style: "BrandSuffixLargeChar" }),
       ],
     }),
-    // Title
     new Paragraph({
-      alignment: AlignmentType.CENTER,
+      style: "DocumentTitle",
       border: {
-        bottom: {
-          style: BorderStyle.SINGLE,
-          size: 8,
-          color: DS.PRIMARY_MID,
-          space: 16,
-        },
+        bottom: { style: BorderStyle.SINGLE, size: 8, color: DS.ACCENT, space: 16 },
       },
-      spacing: { after: 200 },
-      children: [
-        new TextRun({
-          text: title,
-          font: DS.FONT_HEADING,
-          size: 36,
-          bold: true,
-          color: DS.DARK,
-        }),
-      ],
+      children: [new TextRun({ text: title })],
     }),
-    // Subtitle
     new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: subtitle,
-          font: DS.FONT_BODY,
-          size: 22,
-          italics: true,
-          color: DS.MEDIUM,
-        }),
-      ],
+      style: "Subtitle",
+      children: [new TextRun({ text: subtitle })],
     }),
   ];
 }
 
-/** Section heading with coloured number prefix: "X. Title" */
+/** §8.4 Section heading with accent number */
 export function sectionHeading(num: string, title: string): Paragraph {
   return new Paragraph({
-    style: "Heading1",
+    heading: HeadingLevel.HEADING_1,
     children: [
-      new TextRun({
-        text: `${num}. `,
-        font: DS.FONT_HEADING,
-        size: 30,
-        bold: true,
-        color: DS.PRIMARY_MID,
-      }),
-      new TextRun({
-        text: title,
-        font: DS.FONT_HEADING,
-        size: 30,
-        bold: true,
-        color: DS.PRIMARY,
-      }),
+      new TextRun({ text: `${num}. `, style: "AccentNumberChar" }),
+      new TextRun({ text: title }),
     ],
   });
 }
 
-/** 1-cell-table "card" box — used for law-ref, info, warning, disclaimer, CTA */
+/** 1-cell box table helper */
 function boxTable(opts: {
   bg: string;
   borderColor: string;
   leftBorderSize?: number;
   children: Paragraph[];
 }): Table {
-  const leftBorder = {
-    style: BorderStyle.SINGLE,
-    size: opts.leftBorderSize ?? 18,
-    color: opts.borderColor,
-  };
-  const otherBorder = {
-    style: BorderStyle.SINGLE,
-    size: 1,
-    color: opts.borderColor,
-  };
-
+  const left = { style: BorderStyle.SINGLE, size: opts.leftBorderSize ?? 18, color: opts.borderColor };
+  const other = { style: BorderStyle.SINGLE, size: 1, color: opts.borderColor };
   return new Table({
     width: { size: DS.CONTENT_W, type: WidthType.DXA },
     columnWidths: [DS.CONTENT_W],
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: DS.CONTENT_W, type: WidthType.DXA },
-            shading: {
-              type: ShadingType.CLEAR,
-              fill: opts.bg,
-              color: "auto",
-            },
-            borders: {
-              top: otherBorder,
-              bottom: otherBorder,
-              right: otherBorder,
-              left: leftBorder,
-            },
-            margins: {
-              top: 120,
-              bottom: 120,
-              left: 200,
-              right: 200,
-            },
-            children: opts.children,
-          }),
-        ],
-      }),
-    ],
+    rows: [new TableRow({
+      children: [new TableCell({
+        width: { size: DS.CONTENT_W, type: WidthType.DXA },
+        shading: { type: ShadingType.CLEAR, fill: opts.bg, color: "auto" },
+        borders: { top: other, bottom: other, right: other, left },
+        margins: { top: 120, bottom: 120, left: 200, right: 200 },
+        children: opts.children,
+      })],
+    })],
   });
 }
 
-/** Lovhenvisningsboks (purple) */
+/** §8.5 Lovhenvisningsboks (blue) */
 export function lawRefBox(law: string, action: string): Table {
   return boxTable({
-    bg: DS.PRIMARY_LIGHT,
-    borderColor: DS.PRIMARY_MID,
+    bg: DS.ACCENT_LIGHT,
+    borderColor: DS.ACCENT,
     children: [
       new Paragraph({
-        spacing: { after: 80 },
+        style: "BoxTitle",
         children: [
-          new TextRun({ text: "\u2696\uFE0F  ", size: 22 }),
-          new TextRun({
-            text: law,
-            bold: true,
-            size: 22,
-            color: DS.PRIMARY,
-          }),
+          new TextRun({ text: "\u2696\uFE0F  " + law, style: "BoxTitleAccentChar" }),
         ],
       }),
       new Paragraph({
-        spacing: { after: 0 },
-        children: [
-          new TextRun({
-            text: action,
-            italics: true,
-            size: 20,
-            color: DS.MEDIUM,
-          }),
-        ],
+        style: "BoxBody",
+        children: [new TextRun({ text: action })],
       }),
     ],
   });
 }
 
-/** Info-boks (blue) */
+/** §8.6 Info-boks (blue) */
 export function infoBox(title: string, text: string): Table {
   return boxTable({
-    bg: DS.SECONDARY_LT,
-    borderColor: DS.SECONDARY,
+    bg: DS.ACCENT_LIGHT,
+    borderColor: DS.ACCENT,
     children: [
       new Paragraph({
-        spacing: { after: 80 },
+        style: "BoxTitle",
         children: [
-          new TextRun({ text: "\u2139\uFE0F  ", size: 22 }),
-          new TextRun({
-            text: title,
-            bold: true,
-            size: 22,
-            color: DS.SECONDARY,
-          }),
+          new TextRun({ text: "\u2139\uFE0F  " + title, style: "BoxTitleAccentChar" }),
         ],
       }),
       new Paragraph({
-        spacing: { after: 0 },
-        children: [
-          new TextRun({ text, size: 20, color: DS.MEDIUM }),
-        ],
+        style: "BoxBody",
+        children: [new TextRun({ text })],
       }),
     ],
   });
 }
 
-/** Advarselsboks (orange) */
+/** §8.7 Advarselsboks (orange) */
 export function warningBox(title: string, text: string): Table {
   return boxTable({
     bg: DS.WARNING_LT,
     borderColor: DS.WARNING,
     children: [
       new Paragraph({
-        spacing: { after: 80 },
+        style: "BoxTitle",
         children: [
-          new TextRun({ text: "\u26A0\uFE0F  ", size: 22 }),
-          new TextRun({
-            text: title,
-            bold: true,
-            size: 22,
-            color: DS.WARNING,
-          }),
+          new TextRun({ text: "\u26A0\uFE0F  " + title, style: "BoxTitleWarningChar" }),
         ],
       }),
       new Paragraph({
-        spacing: { after: 0 },
-        children: [
-          new TextRun({ text, size: 20, color: DS.MEDIUM }),
-        ],
+        style: "BoxBody",
+        children: [new TextRun({ text })],
       }),
     ],
   });
 }
 
-/** Disclaimer-boks (grey, no fat left border) */
+/** §8.8 Disclaimer-boks (grey, uniform borders) */
 export function disclaimerBox(text: string): Table {
   const thin = { style: BorderStyle.SINGLE, size: 1, color: DS.BORDER };
   return new Table({
     width: { size: DS.CONTENT_W, type: WidthType.DXA },
     columnWidths: [DS.CONTENT_W],
-    rows: [
-      new TableRow({
+    rows: [new TableRow({
+      children: [new TableCell({
+        width: { size: DS.CONTENT_W, type: WidthType.DXA },
+        shading: { type: ShadingType.CLEAR, fill: DS.BG_LIGHT, color: "auto" },
+        borders: { top: thin, bottom: thin, left: thin, right: thin },
+        margins: { top: 120, bottom: 120, left: 200, right: 200 },
         children: [
-          new TableCell({
-            width: { size: DS.CONTENT_W, type: WidthType.DXA },
-            shading: {
-              type: ShadingType.CLEAR,
-              fill: DS.BG_LIGHT,
-              color: "auto",
-            },
-            borders: { top: thin, bottom: thin, left: thin, right: thin },
-            margins: { top: 120, bottom: 120, left: 200, right: 200 },
+          new Paragraph({
+            style: "DisclaimerText",
             children: [
-              new Paragraph({
-                spacing: { after: 0 },
-                children: [
-                  new TextRun({
-                    text: "Disclaimer: ",
-                    bold: true,
-                    size: 20,
-                    color: DS.MEDIUM,
-                  }),
-                  new TextRun({
-                    text,
-                    italics: true,
-                    size: 20,
-                    color: DS.MEDIUM,
-                  }),
-                ],
-              }),
+              new TextRun({ text: "Disclaimer: ", style: "BoxTitleDisclaimerChar" }),
+              new TextRun({ text }),
             ],
           }),
         ],
-      }),
-    ],
+      })],
+    })],
   });
 }
 
-/** CTA-boks (purple, centred) */
+/** §8.9 CTA-boks */
 export function ctaBox(text: string, url: string): Table {
-  const thin = {
-    style: BorderStyle.SINGLE,
-    size: 1,
-    color: DS.PRIMARY_MID,
-  };
+  const thin = { style: BorderStyle.SINGLE, size: 1, color: DS.ACCENT };
   return new Table({
     width: { size: DS.CONTENT_W, type: WidthType.DXA },
     columnWidths: [DS.CONTENT_W],
-    rows: [
-      new TableRow({
+    rows: [new TableRow({
+      children: [new TableCell({
+        width: { size: DS.CONTENT_W, type: WidthType.DXA },
+        shading: { type: ShadingType.CLEAR, fill: DS.ACCENT_FAINT, color: "auto" },
+        borders: { top: thin, bottom: thin, left: thin, right: thin },
+        margins: { top: 120, bottom: 120, left: 200, right: 200 },
         children: [
-          new TableCell({
-            width: { size: DS.CONTENT_W, type: WidthType.DXA },
-            shading: {
-              type: ShadingType.CLEAR,
-              fill: DS.PRIMARY_LIGHT,
-              color: "auto",
-            },
-            borders: { top: thin, bottom: thin, left: thin, right: thin },
-            margins: { top: 120, bottom: 120, left: 200, right: 200 },
+          new Paragraph({
+            style: "CTATitle",
+            children: [new TextRun({ text })],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 0 },
             children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                spacing: { after: 80 },
+              new ExternalHyperlink({
+                link: `https://${url}`,
                 children: [
-                  new TextRun({
-                    text,
-                    bold: true,
-                    size: 26,
-                    color: DS.PRIMARY,
-                  }),
-                ],
-              }),
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                spacing: { after: 0 },
-                children: [
-                  new ExternalHyperlink({
-                    link: `https://${url}`,
-                    children: [
-                      new TextRun({
-                        text: url,
-                        style: "Hyperlink",
-                        size: 22,
-                        color: DS.SECONDARY,
-                      }),
-                    ],
-                  }),
+                  new TextRun({ text: url, style: "HyperlinkChar" }),
                 ],
               }),
             ],
           }),
         ],
-      }),
-    ],
+      })],
+    })],
   });
 }
 
-/** Checkbox item (empty checkbox bullet) */
+/** §8.10 Checkbox item */
 export function checkboxItem(text: string): Paragraph {
   return new Paragraph({
+    style: "CheckboxItem",
     numbering: { reference: "checkboxEmpty", level: 0 },
-    spacing: { after: 80 },
-    children: [new TextRun({ text, size: 22, color: DS.DARK })],
+    children: [new TextRun({ text })],
   });
 }
 
-/** Bullet item */
-export function bulletItem(
-  text: string,
-  opts?: { boldPrefix?: string }
-): Paragraph {
+/** Bullet item with optional bold prefix */
+export function bulletItem(text: string, opts?: { boldPrefix?: string }): Paragraph {
   const children: TextRun[] = [];
   if (opts?.boldPrefix) {
-    children.push(
-      new TextRun({
-        text: `${opts.boldPrefix} `,
-        bold: true,
-        size: 22,
-        color: DS.DARK,
-      })
-    );
+    children.push(new TextRun({ text: `${opts.boldPrefix} `, style: "BoldPrefixChar" }));
   }
-  children.push(new TextRun({ text, size: 22, color: DS.DARK }));
-
+  children.push(new TextRun({ text }));
   return new Paragraph({
     numbering: { reference: "bullets", level: 0 },
     spacing: { after: 80 },
@@ -689,111 +585,78 @@ export function bulletItem(
   });
 }
 
-/** Fill-field for ejeraftale: label + underline */
+/** §8.11 Fill-field (label + underline) */
 export function fillField(label: string): Table {
   return new Table({
     width: { size: DS.CONTENT_W, type: WidthType.DXA },
     columnWidths: [3000, 6306],
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 3000, type: WidthType.DXA },
-            borders: noBorders,
-            margins: { top: 40, bottom: 40, left: 0, right: 80 },
-            children: [
-              new Paragraph({
-                spacing: { after: 0 },
-                children: [
-                  new TextRun({
-                    text: `${label}:`,
-                    bold: true,
-                    size: 22,
-                    color: DS.DARK,
-                  }),
-                ],
-              }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 6306, type: WidthType.DXA },
-            borders: {
-              top: noBorder,
-              left: noBorder,
-              right: noBorder,
-              bottom: {
-                style: BorderStyle.SINGLE,
-                size: 2,
-                color: DS.LIGHT,
-              },
-            },
-            margins: { top: 40, bottom: 40, left: 0, right: 0 },
-            children: [new Paragraph({ spacing: { after: 0 }, children: [] })],
-          }),
-        ],
-      }),
-    ],
+    rows: [new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 3000, type: WidthType.DXA },
+          borders: noBorders,
+          margins: { top: 40, bottom: 40, left: 0, right: 80 },
+          children: [
+            new Paragraph({
+              spacing: { after: 0 },
+              children: [
+                new TextRun({ text: `${label}:`, style: "FieldLabelChar" }),
+              ],
+            }),
+          ],
+        }),
+        new TableCell({
+          width: { size: 6306, type: WidthType.DXA },
+          borders: {
+            top: noBorder, left: noBorder, right: noBorder,
+            bottom: { style: BorderStyle.SINGLE, size: 2, color: DS.LIGHT },
+          },
+          margins: { top: 40, bottom: 40, left: 0, right: 0 },
+          children: [new Paragraph({ spacing: { after: 0 }, children: [] })],
+        }),
+      ],
+    })],
   });
 }
 
-/** Data table with header row + alternating body rows */
-export function makeTable(
-  headers: string[],
-  rows: string[][],
-  columnWidths: number[]
-): Table {
-  const headerCells = headers.map(
-    (h, i) =>
-      new TableCell({
-        width: { size: columnWidths[i], type: WidthType.DXA },
-        shading: {
-          type: ShadingType.CLEAR,
-          fill: DS.PRIMARY,
-          color: "auto",
-        },
-        borders,
-        margins: { top: 80, bottom: 80, left: 120, right: 120 },
-        children: [
-          new Paragraph({
-            spacing: { after: 0 },
-            children: [
-              new TextRun({
-                text: h,
-                bold: true,
-                size: 22,
-                color: DS.WHITE,
-              }),
-            ],
-          }),
-        ],
-      } as ITableCellOptions)
+/** §8.12 Data table */
+export function makeTable(headers: string[], rows: string[][], columnWidths: number[]): Table {
+  const headerCells = headers.map((h, i) =>
+    new TableCell({
+      width: { size: columnWidths[i], type: WidthType.DXA },
+      shading: { type: ShadingType.CLEAR, fill: DS.NAVY, color: "auto" },
+      borders,
+      margins: { top: 80, bottom: 80, left: 120, right: 120 },
+      children: [
+        new Paragraph({
+          style: "TableHeaderPara",
+          children: [new TextRun({ text: h })],
+        }),
+      ],
+    })
   );
 
-  const bodyRows = rows.map(
-    (row, rowIdx) =>
-      new TableRow({
-        children: row.map(
-          (cell, colIdx) =>
-            new TableCell({
-              width: { size: columnWidths[colIdx], type: WidthType.DXA },
-              shading: {
-                type: ShadingType.CLEAR,
-                fill: rowIdx % 2 === 0 ? DS.PRIMARY_LIGHT : DS.WHITE,
-                color: "auto",
-              },
-              borders,
-              margins: { top: 80, bottom: 80, left: 120, right: 120 },
-              children: [
-                new Paragraph({
-                  spacing: { after: 0 },
-                  children: [
-                    new TextRun({ text: cell, size: 22, color: DS.DARK }),
-                  ],
-                }),
-              ],
-            } as ITableCellOptions)
-        ),
-      })
+  const bodyRows = rows.map((row, rowIdx) =>
+    new TableRow({
+      children: row.map((cell, colIdx) =>
+        new TableCell({
+          width: { size: columnWidths[colIdx], type: WidthType.DXA },
+          shading: {
+            type: ShadingType.CLEAR,
+            fill: rowIdx % 2 === 0 ? DS.ACCENT_FAINT : DS.WHITE,
+            color: "auto",
+          },
+          borders,
+          margins: { top: 80, bottom: 80, left: 120, right: 120 },
+          children: [
+            new Paragraph({
+              style: "TableCellPara",
+              children: [new TextRun({ text: cell })],
+            }),
+          ],
+        })
+      ),
+    })
   );
 
   return new Table({
@@ -803,14 +666,14 @@ export function makeTable(
   });
 }
 
-/** Normal body paragraph */
+/** Normal body paragraph — inherits all from document default */
 export function bodyText(text: string): Paragraph {
   return new Paragraph({
-    children: [new TextRun({ text, size: 22, color: DS.DARK })],
+    children: [new TextRun({ text })],
   });
 }
 
-/** Page break paragraph */
+/** Page break */
 export function pageBreak(): Paragraph {
   return new Paragraph({ children: [new PageBreak()] });
 }
