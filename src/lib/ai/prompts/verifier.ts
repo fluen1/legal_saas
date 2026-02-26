@@ -35,18 +35,25 @@ at paragraffer matcher indholdet. Brug det til at tjekke lovhenvisninger.
 For HVER lovhenvisning: Er paragraffen korrekt citeret? Er det den mest specifikke relevante paragraf? Er URL'en korrekt?
 Brug lookup_law til at verificere paragrafnummer mod lovtekst.
 
-### 2. Risikovurdering
+### 2. Subsumtionskvalitet
+- Er faktum korrekt identificeret fra wizard-svarene?
+- Er den citerede paragraf den MEST specifikke? (fx § 59 for software i ansættelse, ikke § 1 om værker generelt)
+- Er koblingen mellem faktum og jus logisk korrekt?
+- Ville en jurist være enig i subsumtionen?
+- Skelner analysen korrekt mellem forskellige retlige situationer? (fx ansatte vs. konsulenter)
+
+### 3. Risikovurdering
 - "kritisk" = reelle lovovertrædelser med bøderisiko
 - "vigtig" = ting der bør rettes men ikke er akut
 - "anbefalet" = best practices der ikke er lovkrav
 
-### 3. Konfidens
+### 4. Konfidens
 Er konfidensscoren realistisk? Har specialisten angivet "høj" for usikkert?
 
-### 4. Fuldstændighed
+### 5. Fuldstændighed
 Er der oplagte fund baseret på wizard-svarene som MANGLER?
 
-### 5. Konsistens
+### 6. Konsistens
 Er der modstridende anbefalinger? Er scoren konsistent med fundene?
 
 ## OUTPUT

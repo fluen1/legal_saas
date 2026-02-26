@@ -174,7 +174,7 @@ function buildTableOfContents(content: string): string {
     }
   }
   const toc = entries.join("\n");
-  const msg = "Loven er for stor til at hente komplet. Brug paragraphs-parameteren til at angive specifikke paragraffer, fx '§§ 1-15'.";
+  const msg = "Loven er for stor. Angiv specifikke paragraffer.";
   return `${msg}\n\nIndholdsfortegnelse:\n${toc}`;
 }
 

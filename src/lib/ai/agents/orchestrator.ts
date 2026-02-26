@@ -25,12 +25,20 @@ export async function runOrchestrator(
     tools: [orchestratorTool],
     toolChoice: { type: "tool", name: "submit_report" },
     enableThinking: true,
-    thinkingBudget: 10000,
+    thinkingBudget: 5000,
+    maxTokens: 32000,
     useCache: false,
   });
 
   if (result.toolUse?.name === "submit_report") {
-    return result.toolUse.input as OrchestratorOutput;
+    const output = result.toolUse.input as OrchestratorOutput;
+    const areaCount = Array.isArray(output?.areas) ? output.areas.length : 0;
+    const actionCount = Array.isArray(output?.actionPlan) ? output.actionPlan.length : 0;
+    console.log(`[orchestrator] submit_report: score=${output?.overallScore}, areas=${areaCount}, actionPlan=${actionCount}`);
+    if (areaCount === 0) {
+      console.warn(`[orchestrator] ADVARSEL: Rapport mangler areas! Top keys: ${Object.keys(output ?? {}).join(", ")}`);
+    }
+    return output;
   }
 
   throw new Error(`Orchestrator did not return tool_use. Got: ${result.text?.slice(0, 200)}`);

@@ -39,8 +39,8 @@ export async function runHealthCheckPipeline(
   const profile = await generateCompanyProfile(wizardAnswers);
   timings.profile = (Date.now() - profileStart) / 1000;
 
-  // Sequential execution to avoid rate limit (30k input tokens/min) when using full law texts
-  const analyses: Awaited<ReturnType<typeof runSpecialistAgent>>[] = [];
+  // Parallel execution with staggered starts (2s delay) to spread rate limit load
+  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const stepNames = [
     "Gennemgår GDPR & Persondata...",
     "Gennemgår Ansættelsesret...",
@@ -48,14 +48,19 @@ export async function runHealthCheckPipeline(
     "Gennemgår Kontrakter & Kommercielle Aftaler...",
     "Gennemgår IP & Immaterielle Rettigheder...",
   ];
-  for (let i = 0; i < AREA_CONFIGS.length; i++) {
-    const config = AREA_CONFIGS[i];
-    await onStatus?.("analyzing", stepNames[i] ?? config.name);
-    const start = Date.now();
-    const result = await runSpecialistAgent(config, wizardAnswers, profile);
-    timings.specialists[config.name] = (Date.now() - start) / 1000;
-    analyses.push(result);
-  }
+  await onStatus?.("analyzing", "Analyserer alle juridiske områder parallelt...");
+  const specialistPromises = AREA_CONFIGS.map((config, i) => {
+    const stagger = i * 2000;
+    return delay(stagger).then(async () => {
+      console.log(`[pipeline] Starting specialist: ${config.name} (stagger: ${stagger}ms)`);
+      const start = Date.now();
+      const result = await runSpecialistAgent(config, wizardAnswers, profile);
+      timings.specialists[config.name] = (Date.now() - start) / 1000;
+      await onStatus?.("analyzing", stepNames[i] ?? config.name);
+      return result;
+    });
+  });
+  const analyses = await Promise.all(specialistPromises);
 
   await onStatus?.("orchestrating", "Samler din rapport...");
   const orchStart = Date.now();

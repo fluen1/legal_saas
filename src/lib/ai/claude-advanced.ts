@@ -1,6 +1,6 @@
 /**
  * Advanced Claude API wrapper for multi-agent pipeline.
- * Supports: prompt caching, tool_use, extended thinking.
+ * Supports: prompt caching, tool_use, extended thinking, streaming.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -10,7 +10,10 @@ let _client: Anthropic | null = null;
 
 function getClient() {
   if (!_client) {
-    _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+    _client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY!,
+      timeout: 10 * 60 * 1000, // 10 minutes
+    });
   }
   return _client;
 }
@@ -24,6 +27,7 @@ export interface CallClaudeOptions {
   toolChoice?: { type: "tool"; name: string } | { type: "any" };
   enableThinking?: boolean;
   thinkingBudget?: number;
+  maxTokens?: number;
   useCache?: boolean;
 }
 
@@ -32,48 +36,20 @@ export interface CallClaudeResult {
   toolUse: { name: string; input: unknown } | null;
 }
 
-export async function callClaudeAdvanced(options: CallClaudeOptions): Promise<CallClaudeResult> {
-  const client = getClient();
-
-  const systemContent =
-    options.useCache !== false
-      ? [{ type: "text" as const, text: options.systemPrompt, cache_control: { type: "ephemeral" as const } }]
-      : options.systemPrompt;
-
-  const createParams = {
-    model: MODEL,
-    max_tokens: 16384,
-    system: systemContent,
-    messages: [{ role: "user" as const, content: options.userMessage }],
-    ...(options.tools?.length
-      ? {
-          tools: options.tools,
-          tool_choice:
-            options.enableThinking
-              ? ({ type: "auto" as const } as const)
-              : (options.toolChoice ?? ({ type: "any" as const } as const)),
-        }
-      : {}),
-  };
-
-  const finalParams = {
-    ...createParams,
-    stream: false as const,
-    ...(options.enableThinking
-      ? {
-          thinking: {
-            type: "enabled" as const,
-            budget_tokens: options.thinkingBudget ?? 5000,
-          },
-        }
-      : {}),
-  } as Parameters<typeof client.messages.create>[0];
-
-  let response!: Awaited<ReturnType<typeof client.messages.create>>;
+/**
+ * Shared request helper: streams the response and returns the final message.
+ * Uses streaming to avoid SDK timeout limits on large max_tokens.
+ */
+async function doStreamRequest(
+  client: Anthropic,
+  params: Record<string, unknown>
+): Promise<Anthropic.Messages.Message> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      response = await client.messages.create(finalParams);
-      break;
+      const { stream: _ignored, ...streamParams } = params;
+      const stream = client.messages.stream(streamParams as Parameters<typeof client.messages.stream>[0]);
+      const response = await stream.finalMessage();
+      return response;
     } catch (err: unknown) {
       const status = (err as { status?: number })?.status;
       const headers = (err as { headers?: { get?: (n: string) => string } })?.headers;
@@ -89,8 +65,14 @@ export async function callClaudeAdvanced(options: CallClaudeOptions): Promise<Ca
       throw err;
     }
   }
+  throw new Error("Max retries exceeded");
+}
 
-  const content = "content" in response ? response.content : [];
+function extractResult(response: Anthropic.Messages.Message): CallClaudeResult {
+  const content = response.content ?? [];
+  if (response.stop_reason === "max_tokens") {
+    console.warn(`[Claude] ADVARSEL: Response trunkeret (stop_reason=max_tokens). Output kan være ufuldstændigt.`);
+  }
   const toolBlock = content.find((b) => b.type === "tool_use");
   const textBlock = content.find((b) => b.type === "text");
 
@@ -101,6 +83,42 @@ export async function callClaudeAdvanced(options: CallClaudeOptions): Promise<Ca
         ? { name: toolBlock.name, input: toolBlock.input }
         : null,
   };
+}
+
+export async function callClaudeAdvanced(options: CallClaudeOptions): Promise<CallClaudeResult> {
+  const client = getClient();
+
+  const systemContent =
+    options.useCache !== false
+      ? [{ type: "text" as const, text: options.systemPrompt, cache_control: { type: "ephemeral" as const } }]
+      : options.systemPrompt;
+
+  const params: Record<string, unknown> = {
+    model: MODEL,
+    max_tokens: options.maxTokens ?? 16384,
+    system: systemContent,
+    messages: [{ role: "user" as const, content: options.userMessage }],
+    ...(options.tools?.length
+      ? {
+          tools: options.tools,
+          tool_choice:
+            options.enableThinking
+              ? { type: "auto" as const }
+              : (options.toolChoice ?? { type: "any" as const }),
+        }
+      : {}),
+    ...(options.enableThinking
+      ? {
+          thinking: {
+            type: "enabled" as const,
+            budget_tokens: options.thinkingBudget ?? 5000,
+          },
+        }
+      : {}),
+  };
+
+  const response = await doStreamRequest(client, params);
+  return extractResult(response);
 }
 
 export type ToolExecutor = (name: string, input: unknown) => Promise<string>;
@@ -130,56 +148,33 @@ export async function callClaudeWithToolLoop(
   type Message = { role: "user" | "assistant"; content: string | unknown[] };
   const messages: Message[] = [{ role: "user", content: options.userMessage }];
 
-  const createParams = (msgs: Message[]) =>
-    ({
-      model: MODEL,
-      max_tokens: 16384,
-      system: systemContent,
-      messages: msgs,
-      stream: false as const,
-      ...(options.tools?.length
-        ? {
-            tools: options.tools,
-            tool_choice:
-              options.enableThinking
-                ? ({ type: "auto" as const } as const)
-                : (options.toolChoice ?? ({ type: "any" as const } as const)),
-          }
-        : {}),
-      ...(options.enableThinking
-        ? {
-            thinking: {
-              type: "enabled" as const,
-              budget_tokens: options.thinkingBudget ?? 5000,
-            },
-          }
-        : {}),
-    }) as Parameters<typeof client.messages.create>[0];
-
-  const doRequest = async (msgs: Message[]) => {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        return await client.messages.create(createParams(msgs));
-      } catch (err: unknown) {
-        const status = (err as { status?: number })?.status;
-        const headers = (err as { headers?: { get?: (n: string) => string } })?.headers;
-        const retryAfter = headers?.get?.("retry-after") ?? headers?.get?.("Retry-After");
-        if (status === 429 && attempt < 2) {
-          const suggested = retryAfter ? parseInt(retryAfter, 10) * 1000 : 120000;
-          const waitMs = Math.max(suggested, 60000);
-          console.warn(`[Claude] Rate limit 429 — venter ${Math.round(waitMs / 1000)}s...`);
-          await new Promise((r) => setTimeout(r, waitMs));
-          continue;
+  const buildParams = (msgs: Message[]): Record<string, unknown> => ({
+    model: MODEL,
+    max_tokens: options.maxTokens ?? 16384,
+    system: systemContent,
+    messages: msgs,
+    ...(options.tools?.length
+      ? {
+          tools: options.tools,
+          tool_choice:
+            options.enableThinking
+              ? { type: "auto" as const }
+              : (options.toolChoice ?? { type: "any" as const }),
         }
-        throw err;
-      }
-    }
-    throw new Error("Max retries exceeded");
-  };
+      : {}),
+    ...(options.enableThinking
+      ? {
+          thinking: {
+            type: "enabled" as const,
+            budget_tokens: options.thinkingBudget ?? 5000,
+          },
+        }
+      : {}),
+  });
 
   for (let round = 0; round < maxRounds; round++) {
-    const response = await doRequest(messages);
-    const content = "content" in response ? response.content : [];
+    const response = await doStreamRequest(client, buildParams(messages));
+    const content = response.content ?? [];
     const toolUses = content.filter(
       (b) => "type" in b && b.type === "tool_use" && "id" in b && "name" in b && "input" in b
     ) as Array<{ type: "tool_use"; id: string; name: string; input: unknown }>;

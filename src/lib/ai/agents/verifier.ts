@@ -38,6 +38,7 @@ export async function runVerifier(
     maxToolRounds: 8,
     enableThinking: true,
     thinkingBudget: 5000,
+    maxTokens: 32000,
     useCache: false,
     executeTool: async (name, input) => {
       if (name !== "lookup_law") {
@@ -82,18 +83,26 @@ export async function runVerifier(
   });
 
   if (result.toolUse?.name === "submit_verified_report") {
-    const input = result.toolUse.input as {
-      report: OrchestratorOutput;
-      qualityScore: number;
-      modifications?: unknown[];
-      warnings?: string[];
-    };
-    const mods = (input.modifications ?? []) as VerifierModification[];
+    const input = result.toolUse.input as Record<string, unknown>;
+    const verifiedReport = (input.report ?? report) as OrchestratorOutput;
+    const mods = ((input.modifications ?? []) as unknown[]) as VerifierModification[];
+    const qs = typeof input.qualityScore === "number" ? input.qualityScore : 80;
+    const warns = Array.isArray(input.warnings) ? (input.warnings as string[]) : [];
+
+    // Debug: log shape of returned report
+    const hasAreas = Array.isArray(verifiedReport?.areas);
+    const areaCount = hasAreas ? verifiedReport.areas.length : 0;
+    console.log(`[verifier] submit_verified_report: qualityScore=${qs}, areas=${areaCount}, mods=${mods.length}, warns=${warns.length}`);
+    if (!hasAreas) {
+      console.warn(`[verifier] ADVARSEL: Rapport mangler areas. Top keys: ${Object.keys(verifiedReport ?? {}).join(", ")}`);
+      console.warn(`[verifier] Input top keys: ${Object.keys(input).join(", ")}`);
+    }
+
     return {
-      report: input.report,
-      qualityScore: input.qualityScore,
+      report: verifiedReport,
+      qualityScore: qs,
       modifications: mods,
-      warnings: input.warnings ?? [],
+      warnings: warns,
     };
   }
 

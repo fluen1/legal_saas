@@ -105,12 +105,50 @@ async function main() {
     console.log(`Verifikator: ${timings.verifier?.toFixed(1) ?? "?"}s`);
   }
 
+  // Dump IP specialist full analysis
+  const ipArea = verified.report?.areas?.find((a: { area: string }) => a.area === "ip");
+  if (ipArea) {
+    console.log("\n=== IP-SPECIALIST FULD ANALYSE ===");
+    console.log(`Status: ${ipArea.status}, Score: ${ipArea.score}`);
+    console.log(`Summary: ${ipArea.summary}`);
+    console.log(`\nPositives:`);
+    for (const p of ipArea.positives ?? []) console.log(`  + ${p}`);
+    console.log(`\nIssues (${ipArea.issues?.length ?? 0}):`);
+    for (const issue of ipArea.issues ?? []) {
+      console.log(`\n  --- ${issue.title} [${issue.riskLevel}] (konfidens: ${issue.confidence}) ---`);
+      console.log(`  ${issue.description}`);
+      console.log(`  Handling: ${issue.action}`);
+      console.log(`  Tidsfrist: ${issue.timeEstimate}${issue.deadline ? `, deadline: ${issue.deadline}` : ""}`);
+      if (issue.confidenceReason) console.log(`  Konfidensgrund: ${issue.confidenceReason}`);
+      for (const ref of issue.lawReferences ?? []) {
+        console.log(`  Ref: ${ref.law} ${ref.paragraph}${ref.stk ? ` ${ref.stk}` : ""}${ref.isEURegulation ? " (EU)" : ""}`);
+        console.log(`       ${ref.description}`);
+        console.log(`       URL: ${ref.url}`);
+      }
+    }
+    console.log("\n=== SLUT IP-SPECIALIST ===");
+  } else {
+    console.log("\n⚠ IP-specialist analyse ikke fundet i rapport");
+  }
+
+  // Verifier quality
+  console.log("\n=== VERIFIKATOR RESULTAT ===");
+  console.log(`Quality score: ${verified.qualityScore ?? "?"}`);
+  console.log(`Modifications (${verified.modifications?.length ?? 0}):`);
+  for (const mod of verified.modifications ?? []) {
+    console.log(`  [${mod.type}] ${mod.area}: ${mod.description}`);
+  }
+  console.log(`Warnings (${verified.warnings?.length ?? 0}):`);
+  for (const w of verified.warnings ?? []) {
+    console.log(`  ⚠ ${w}`);
+  }
+
   // Count law references
   let lawRefCount = 0;
   const refExamples: Array<{ law: string; paragraph: string; url: string }> = [];
   const ipParas: string[] = [];
 
-  for (const area of verified.report.areas) {
+  for (const area of verified.report?.areas ?? []) {
     for (const issue of area.issues) {
       for (const ref of issue.lawReferences ?? []) {
         lawRefCount++;
@@ -129,7 +167,7 @@ async function main() {
     }
   }
 
-  for (const item of verified.report.actionPlan) {
+  for (const item of verified.report?.actionPlan ?? []) {
     for (const ref of item.lawReferences ?? []) {
       lawRefCount++;
       if (item.area === "ip") {
@@ -151,7 +189,7 @@ async function main() {
   const has53 = ipParas.includes("53");
   const has59 = ipParas.includes("59");
 
-  const issuesWithConfidence = verified.report.areas.flatMap((a) =>
+  const issuesWithConfidence = (verified.report?.areas ?? []).flatMap((a) =>
     a.issues.filter((i) => i.confidence).map((i) => ({ area: a.areaName, title: i.title, confidence: i.confidence }))
   );
   console.log(`\nKonfidensscore (issues med confidence): ${issuesWithConfidence.length}`);
@@ -191,7 +229,7 @@ async function main() {
   console.log("\n=== KVALITETSTEST (subsumtionsmodel) ===");
   const verifierLookups = lookupLog.filter((l) => l.agent === "verifier").length;
   console.log(`Verifikatoren verificerede lovhenvisninger (lookup-kald): ${verifierLookups > 0 ? "JA" : "NEJ"} (${verifierLookups} opslag)`);
-  const ipIssues = verified.report.areas.find((a) => a.area === "ip")?.issues ?? [];
+  const ipIssues = (verified.report?.areas ?? []).find((a) => a.area === "ip")?.issues ?? [];
   const mentionsConsultants = ipIssues.some(
     (i) =>
       (i.description?.toLowerCase().includes("konsulent") || i.description?.toLowerCase().includes("freelance")) &&
