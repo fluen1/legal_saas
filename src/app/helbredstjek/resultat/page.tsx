@@ -24,10 +24,15 @@ interface FreeReport {
   totalIssues: number;
 }
 
+const IS_TEST_MODE =
+  typeof window !== 'undefined' &&
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_');
+
 function ResultatContent() {
   const searchParams = useSearchParams();
   const healthCheckId = searchParams.get('id');
   const paid = searchParams.get('paid');
+  const bypassPaywall = !!paid || IS_TEST_MODE;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -35,6 +40,12 @@ function ResultatContent() {
   const [freeReport, setFreeReport] = useState<FreeReport | null>(null);
   const [isPaid, setIsPaid] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (IS_TEST_MODE) {
+      console.warn('⚠️ Test mode: Paywall disabled');
+    }
+  }, []);
 
   const fetchReport = useCallback(async () => {
     if (!healthCheckId) return;
@@ -70,7 +81,7 @@ function ResultatContent() {
         setIsPaid(true);
       }
 
-      if (data.tier === 'free' && !paid) {
+      if (data.tier === 'free' && !bypassPaywall) {
         const fullReport = data.report as unknown as HealthCheckReport;
         setFreeReport({
           overallScore: fullReport.overallScore,
@@ -92,7 +103,7 @@ function ResultatContent() {
     }
 
     setLoading(false);
-  }, [healthCheckId, paid]);
+  }, [healthCheckId, bypassPaywall]);
 
   useEffect(() => {
     if (!healthCheckId) {
