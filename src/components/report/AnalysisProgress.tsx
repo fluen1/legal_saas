@@ -10,13 +10,13 @@ import { AlertTriangle, Check, Circle, Loader2, WifiOff } from 'lucide-react';
 
 const STEPS = [
   { threshold: 0.10, label: 'Genererer virksomhedsprofil' },
-  { threshold: 0.25, label: 'Analyserer GDPR & Persondata' },
-  { threshold: 0.35, label: 'Analyserer Ansættelsesret' },
-  { threshold: 0.50, label: 'Analyserer Selskabsret & Governance' },
-  { threshold: 0.60, label: 'Analyserer Kontrakter' },
+  { threshold: 0.22, label: 'Analyserer GDPR & Persondata' },
+  { threshold: 0.34, label: 'Analyserer Ansættelsesret' },
+  { threshold: 0.46, label: 'Analyserer Selskabsret & Governance' },
+  { threshold: 0.58, label: 'Analyserer Kontrakter' },
   { threshold: 0.70, label: 'Analyserer IP & Immaterielle Rettigheder' },
-  { threshold: 0.85, label: 'Samler rapport' },
-  { threshold: 0.95, label: 'Verificerer lovhenvisninger' },
+  { threshold: 0.82, label: 'Samler rapport' },
+  { threshold: 0.90, label: 'Verificerer lovhenvisninger' },
 ];
 
 const PAST_TENSE: Record<string, string> = {

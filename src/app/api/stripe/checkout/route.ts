@@ -12,11 +12,23 @@ interface CheckoutRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate required env vars
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('[Stripe] STRIPE_SECRET_KEY is not set');
+      return NextResponse.json({ error: 'Betalingssystem ikke konfigureret' }, { status: 503 });
+    }
+
     const body: CheckoutRequestBody = await request.json();
     const { healthCheckId, tier, successUrl, cancelUrl } = body;
 
     if (!healthCheckId || !tier) {
       return NextResponse.json({ error: 'Manglende parametre' }, { status: 400 });
+    }
+
+    const priceId = tier === 'premium' ? STRIPE_PRICES.premium_report : STRIPE_PRICES.full_report;
+    if (!priceId) {
+      console.error(`[Stripe] Missing price ID for tier "${tier}". STRIPE_PRICE_FULL_REPORT=${process.env.STRIPE_PRICE_FULL_REPORT ? 'set' : 'MISSING'}, STRIPE_PRICE_PREMIUM_REPORT=${process.env.STRIPE_PRICE_PREMIUM_REPORT ? 'set' : 'MISSING'}`);
+      return NextResponse.json({ error: 'Pris ikke konfigureret for denne pakke' }, { status: 503 });
     }
 
     const supabase = createAdminClient();
@@ -27,10 +39,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (fetchError || !check) {
+      console.error('[Stripe] Health check not found:', fetchError);
       return NextResponse.json({ error: 'Helbredstjek ikke fundet' }, { status: 404 });
     }
-
-    const priceId = tier === 'premium' ? STRIPE_PRICES.premium_report : STRIPE_PRICES.full_report;
 
     const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
@@ -52,7 +63,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ checkoutUrl: session.url });
   } catch (error) {
-    console.error('Stripe checkout error:', error);
-    return NextResponse.json({ error: 'Kunne ikke oprette betaling' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Stripe] Checkout error:', message, error);
+    return NextResponse.json(
+      { error: 'Kunne ikke oprette betaling', detail: message },
+      { status: 500 }
+    );
   }
 }

@@ -8,15 +8,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const STEPS: Record<string, number> = {
   pending: 0,
-  profiling: 0.1,
-  analyzing: 0.15,
-  analyzing_1: 0.25,
-  analyzing_2: 0.35,
-  analyzing_3: 0.50,
-  analyzing_4: 0.60,
+  profiling: 0.10,
+  analyzing_1: 0.22,
+  analyzing_2: 0.34,
+  analyzing_3: 0.46,
+  analyzing_4: 0.58,
   analyzing_5: 0.70,
-  orchestrating: 0.85,
-  verifying: 0.95,
+  orchestrating: 0.82,
+  verifying: 0.90,
   complete: 1,
   error: 1,
 };
