@@ -27,6 +27,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Kunne ikke gemme afmelding' }, { status: 500 });
     }
 
+    // Also mark any active nurture sequences as unsubscribed
+    await supabase
+      .from('nurture_emails')
+      .update({ unsubscribed: true, completed: true })
+      .eq('email', email)
+      .eq('completed', false);
+
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Der opstod en fejl' }, { status: 500 });

@@ -1,66 +1,49 @@
 import { Header } from '@/components/shared/Header';
 import { Footer } from '@/components/shared/Footer';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { BlogCard } from '@/components/blog/BlogCard';
+import { getAllBlogPosts } from '@/lib/blog';
+import type { Metadata } from 'next';
 
-export const metadata = {
-  title: 'Blog — Retsklar',
-  description: 'Artikler om juridisk compliance for danske virksomheder.',
+export const metadata: Metadata = {
+  title: 'Blog — Juridisk compliance for virksomheder | Retsklar',
+  description:
+    'Artikler og guides om GDPR, ansættelsesret, selskabsret, kontrakter og IP for danske virksomheder. Opdateret 2026.',
+  openGraph: {
+    title: 'Blog — Retsklar',
+    description: 'Artikler om juridisk compliance for danske virksomheder.',
+    type: 'website',
+    url: 'https://retsklar.dk/blog',
+  },
 };
 
-const BLOG_POSTS = [
-  {
-    slug: 'gdpr-guide-smv',
-    title: 'GDPR for SMV\'er: Den komplette guide',
-    excerpt: 'Alt hvad du skal vide om GDPR-compliance som dansk virksomhedsejer.',
-    category: 'GDPR',
-    date: '2025-12-15',
-  },
-  {
-    slug: 'ansaettelseskontrakter-krav',
-    title: '5 ting din ansættelseskontrakt SKAL indeholde',
-    excerpt: 'Nye krav til ansættelseskontrakter trådte i kraft i 2023. Er dine opdateret?',
-    category: 'Ansættelse',
-    date: '2025-11-20',
-  },
-  {
-    slug: 'ejeraftale-vigtighed',
-    title: 'Hvorfor du SKAL have en ejeraftale',
-    excerpt: 'Uden en ejeraftale risikerer du alt, hvis I bliver uenige. Læs hvorfor.',
-    category: 'Selskab',
-    date: '2025-10-05',
-  },
-];
-
 export default function BlogPage() {
+  const posts = getAllBlogPosts();
+
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-4xl px-4 py-16">
-        <h1 className="text-3xl font-bold">Blog</h1>
-        <p className="mt-2 text-muted-foreground">
-          Artikler og guides om juridisk compliance for danske virksomheder.
-        </p>
+      <main className="mx-auto max-w-[1200px] px-6 py-16 md:px-12">
+        <div className="max-w-2xl">
+          <h1 className="font-serif text-3xl font-bold text-text-primary md:text-4xl">
+            Blog
+          </h1>
+          <p className="mt-3 text-lg leading-relaxed text-text-secondary">
+            Artikler og guides om juridisk compliance for danske virksomheder.
+            Skrevet af jurister, designet til virksomhedsejere.
+          </p>
+        </div>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
-          {BLOG_POSTS.map((post) => (
-            <Link key={post.slug} href={`/blog/${post.slug}`}>
-              <Card className="h-full transition-shadow hover:shadow-md">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary">{post.category}</Badge>
-                    <span className="text-xs text-muted-foreground">{post.date}</span>
-                  </div>
-                  <CardTitle className="mt-2 text-lg">{post.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{post.excerpt}</p>
-                </CardContent>
-              </Card>
-            </Link>
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {posts.map((post) => (
+            <BlogCard key={post.slug} post={post} />
           ))}
         </div>
+
+        {posts.length === 0 && (
+          <p className="mt-12 text-center text-text-secondary">
+            Ingen artikler endnu. Kom snart tilbage!
+          </p>
+        )}
       </main>
       <Footer />
     </>

@@ -15,10 +15,10 @@ export function Footer() {
             </p>
           </div>
 
-          {/* Links: Om */}
+          {/* Links: Indhold */}
           <div>
             <h4 className="mb-4 text-sm font-semibold text-text-primary">
-              Om
+              Indhold
             </h4>
             <ul className="space-y-2.5 text-sm text-text-secondary">
               <li>
@@ -39,10 +39,26 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/#faq"
+                  href="/blog"
                   className="transition-colors hover:text-text-primary"
                 >
-                  FAQ
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/lovguide"
+                  className="transition-colors hover:text-text-primary"
+                >
+                  Lovguide
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/ressourcer"
+                  className="transition-colors hover:text-text-primary"
+                >
+                  Gratis ressourcer
                 </Link>
               </li>
             </ul>

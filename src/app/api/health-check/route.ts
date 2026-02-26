@@ -146,6 +146,20 @@ async function runPipelineBackground(
       }).catch((err) =>
         console.error('[Health Check] Velkomst-email fejlede:', err)
       );
+
+      // Start nurture sequence for free users
+      supabase
+        .from('nurture_emails')
+        .insert({
+          health_check_id: checkId,
+          email,
+          sequence_step: 0,
+          next_send_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .then(({ error: nurtureErr }) => {
+          if (nurtureErr) console.error('[Health Check] Nurture insert failed:', nurtureErr);
+          else console.log(`[Health Check] Nurture sequence started for ${email}`);
+        });
     }
   } catch (error) {
     console.error('[Health Check] Pipeline failed:', error);

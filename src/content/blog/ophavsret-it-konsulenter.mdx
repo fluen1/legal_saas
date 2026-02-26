@@ -1,0 +1,125 @@
+---
+title: "Hvem ejer koden? Ophavsret for IT-konsulenter"
+description: "Forstå reglerne om ophavsret til software i Danmark. Konsulent vs. ansat, IP-klausuler og overdragelse af rettigheder."
+slug: "ophavsret-it-konsulenter"
+publishedAt: "2026-02-18"
+updatedAt: "2026-02-18"
+author: "Philip"
+category: "IP"
+tags: ["ophavsret", "software", "ip", "it-konsulent", "immaterielle rettigheder"]
+readingTime: "8 min"
+seoKeywords: ["ophavsret software", "hvem ejer koden", "ip rettigheder konsulent", "ophavsret it"]
+---
+
+Hvem ejer egentlig den kode, der bliver skrevet? Det er et spørgsmål der overrasker mange IT-virksomheder, freelancere og deres kunder. Svaret afhænger af, om koden er skrevet af en ansat eller en ekstern konsulent — og om der er en klar aftale om rettigheder.
+
+Denne guide gennemgår de vigtigste regler om ophavsret til software i Danmark.
+
+## Hovedregel: Ophavsmanden ejer
+
+I dansk ret er hovedreglen klar: **Den der skaber et værk, ejer ophavsretten til det.** Det gælder også for software.
+
+[Ophavsretsloven § 1](/lovguide/ophavsretsloven) fastslår, at den der frembringer et litterært eller kunstnerisk værk, har ophavsret til det. Computerprogrammer er udtrykkeligt nævnt som værker der beskyttes af ophavsretsloven.
+
+Det betyder: Når en udvikler skriver kode, er det som udgangspunkt udvikleren der ejer ophavsretten. Ikke kunden. Ikke virksomheden. Udvikleren.
+
+## Undtagelse for ansatte: § 59
+
+Der er én vigtig undtagelse: **Ophavsret til software skabt af ansatte overgår automatisk til arbejdsgiveren.**
+
+[Ophavsretsloven § 59](/lovguide/ophavsretsloven) siger:
+
+> "Ophavsretten til et edb-program, der er frembragt af en arbejdstager under udførelsen af dennes arbejde eller efter arbejdsgiverens anvisninger, tilkommer arbejdsgiveren."
+
+Det er en speciel regel der kun gælder for software. For andre typer værker (tekst, design, musik) gælder den ulovbestemte funktionærregel, som er mindre klar.
+
+**Betingelser for § 59:**
+- Udvikleren skal være **ansat** (ikke freelancer/konsulent)
+- Softwaren skal være skabt **under udførelsen af arbejdet** eller **efter arbejdsgiverens anvisninger**
+- Hvis udvikleren koder et personligt projekt i fritiden, der ikke har noget med arbejdet at gøre, beholder udvikleren rettighederne
+
+## Konsulenter vs. ansatte — den vigtige forskel
+
+Her bliver det vigtigt: **§ 59 gælder IKKE for freelancere og eksterne konsulenter.**
+
+Hvis du hyrer en freelance-udvikler til at bygge din app, din hjemmeside eller dit backend-system, ejer freelanceren som udgangspunkt ophavsretten til koden. Du har kun fået en **brugsret** — med mindre I har aftalt andet skriftligt.
+
+Det kan betyde:
+- Konsulenten kan genbruge koden til andre kunder
+- Konsulenten kan nægte at overdrage source-koden
+- Du har ikke ret til at ændre i koden (bearbejdelsesret) uden aftale
+- Konsulenten kan i teorien forbyde dig at bruge koden, hvis I ikke har en klar aftale
+
+### Eksempel
+
+En startup hyrer en freelancer til at bygge deres MVP. Der er ingen skriftlig aftale om IP-rettigheder. Freelanceren leverer produktet, fakturerer, og alle er glade.
+
+6 måneder senere finder de ud af, at freelanceren har brugt den samme kodebase til et konkurrerende produkt. Startup'en er rasende, men har juridisk ingen ben at stå på — for freelanceren ejer ophavsretten.
+
+## Overdragelse af ophavsret: § 53
+
+Ophavsret kan overdrages, helt eller delvist. [Ophavsretsloven § 53](/lovguide/ophavsretsloven) regulerer dette.
+
+Men her gælder et vigtigt princip: **specifikationsprincippet** (§ 53, stk. 3). Det betyder, at en overdragelse af ophavsret ikke giver erhververen ret til at bruge værket på andre måder end dem, der følger af aftalen eller formålet.
+
+Med andre ord: Hvis du køber "rettighederne til en hjemmeside", har du ikke nødvendigvis ret til at bruge koden til en mobilapp. Med mindre det specifikt er aftalt.
+
+**Praktisk konsekvens:** Vær så specifik som muligt i dine kontrakter. Skriv ikke bare "alle rettigheder overdrages" — specificér præcist hvilke rettigheder, til hvilke formål, og i hvilket omfang.
+
+## IP-klausuler: Hvad skal kontrakten indeholde?
+
+Uanset om du er den der hyrer eller den der koder, bør jeres kontrakt indeholde klare IP-klausuler. Her er de vigtigste:
+
+### 1. Ejerskab af det færdige produkt
+
+Specificér hvem der ejer rettighederne til det endelige produkt. Typisk vil kunden eje det (full IP transfer), men det skal aftales skriftligt.
+
+### 2. Baggrundsteknologi og biblioteker
+
+Mange udviklere bruger egen kode, open source-biblioteker eller frameworks. Aftalen bør adressere:
+- Hvem der ejer udviklerens foreksisterende kode (baggrundsteknologi)
+- Om kunden får licens til at bruge den
+- Hvilke open source-licenser der er i brug (og om de er kompatible med kundens brug)
+
+### 3. Bearbejdelsesret
+
+Har kunden ret til at ændre, videreudvikle og modificere koden? Uden en eksplicit bearbejdelsesret kan kunden være låst fast til den originale udvikler for al fremtidig udvikling.
+
+### 4. Source code og dokumentation
+
+Specificér at kunden får adgang til **source code** (ikke kun kompileret kode) og tilhørende dokumentation.
+
+### 5. Konkurrenceforbud
+
+Må konsulenten bruge samme kode eller lignende løsninger til konkurrerende kunder? Uden en klausul er svaret ja.
+
+## Open source: En særlig udfordring
+
+Mange moderne softwareprojekter bruger open source-biblioteker. Det er som regel helt uproblematisk, men vær opmærksom på licenstypen:
+
+- **MIT / BSD / Apache**: Liberale licenser. Du kan bruge koden kommercielt uden problemer.
+- **GPL**: Copyleft-licens. Hvis du bruger GPL-licenseret kode i dit produkt, skal hele dit produkt potentielt gøres open source.
+- **LGPL**: Mindre restriktiv end GPL. Du kan bruge biblioteket uden at gøre hele dit produkt open source, så længe du linker dynamisk.
+
+**Praktisk anbefaling:** Bed din udvikler om at levere en liste over alle tredjepartslicenser (en "software bill of materials"). Og undgå GPL i kommercielle produkter, med mindre du ved hvad du gør.
+
+## Anbefalinger
+
+### Til virksomheder der hyrer IT-konsulenter:
+1. **Hav altid en skriftlig kontrakt** med klare IP-klausuler
+2. **Specificér ejerskab** af det endelige produkt
+3. **Kræv adgang til source code** og dokumentation
+4. **Adressér baggrundsteknologi** og open source-licenser
+5. **Overvej en konkurrenceklausul** der forhindrer konsulenten i at genbruge koden til konkurrenter
+
+### Til IT-konsulenter og freelancere:
+1. **Vær tydelig om hvad kunden køber** — overdragelse af ophavsret er noget andet end en brugsret
+2. **Beskyt din baggrundsteknologi** ved at definere den i kontrakten
+3. **Dokumentér dit arbejde** så der ikke opstår tvivl om hvad der er dit, og hvad der er kundens
+4. **Prissæt IP-overdragelse** korrekt — fuld overdragelse bør koste mere end en begrænset brugsret
+
+## Næste skridt
+
+IP-rettigheder er et af de mest oversete områder for IT-virksomheder. Mange opdager først problemet, når det er for sent — typisk ved en tvist med en konsulent, en due diligence-proces ved salg, eller en konkurrent der bruger "jeres" kode.
+
+**Retsklar kan hjælpe dig med at identificere IP-risici i din virksomhed.** Vores juridiske helbredstjek analyserer dine kontrakter, ansættelsesforhold og IP-klausuler — og giver dig en konkret handlingsplan.
