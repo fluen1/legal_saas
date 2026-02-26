@@ -1,7 +1,7 @@
 import { Header } from '@/components/shared/Header';
 import { Footer } from '@/components/shared/Footer';
 import Link from 'next/link';
-import { FileText, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -21,14 +21,14 @@ const RESOURCES = [
     slug: 'gdpr-tjekliste',
     title: 'GDPR Tjekliste for Virksomheder',
     description: '10 krav du skal overholde — med lovhenvisninger og konkrete handlinger.',
-    format: 'PDF',
+    format: 'DOCX',
     icon: '🛡️',
   },
   {
     slug: 'fraflytningsguide',
     title: 'Fraflytningsguide — Beskyt Dit Depositum',
     description: 'Trin-for-trin guide til at sikre du får dit depositum tilbage.',
-    format: 'PDF',
+    format: 'DOCX',
     icon: '🏠',
   },
   {

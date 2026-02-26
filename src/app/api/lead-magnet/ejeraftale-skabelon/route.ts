@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { generateEjeraftaleDocx } from '@/lib/pdf/generate-ejeraftale';
+import { buildEjeraftale } from '@/lib/documents/ejeraftale';
 import { validateEmail } from '@/lib/utils/helpers';
 
 export async function POST(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       resource: 'ejeraftale-skabelon',
     });
 
-    const docxBuffer = await generateEjeraftaleDocx();
+    const docxBuffer = await buildEjeraftale();
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { error: sendError } = await resend.emails.send({

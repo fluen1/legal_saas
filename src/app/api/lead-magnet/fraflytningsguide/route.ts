@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { generateFraflytningsguidePdf } from '@/lib/pdf/generate-fraflytningsguide';
+import { buildFraflytningsguide } from '@/lib/documents/fraflytningsguide';
 import { validateEmail } from '@/lib/utils/helpers';
 
 export async function POST(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       resource: 'fraflytningsguide',
     });
 
-    const pdfBytes = await generateFraflytningsguidePdf();
+    const docxBuffer = await buildFraflytningsguide();
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { error: sendError } = await resend.emails.send({
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
             <h2 style="color:#1E3A5F;font-size:20px">Her er din Fraflytningsguide</h2>
             <p style="font-size:16px;line-height:1.6;color:#374151">
               ${name ? `Hej ${name},` : 'Hej,'}<br><br>
-              Tak fordi du downloadede vores Fraflytningsguide. Du finder den vedhæftet som PDF.
+              Tak fordi du downloadede vores Fraflytningsguide. Du finder den vedhæftet som DOCX-fil.
             </p>
             <p style="font-size:16px;line-height:1.6;color:#374151">
               Guiden hjælper dig trin for trin med at sikre dit depositum — fra dokumentation
@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
       `,
       attachments: [
         {
-          filename: 'Fraflytningsguide-Retsklar.pdf',
-          content: Buffer.from(pdfBytes).toString('base64'),
+          filename: 'Fraflytningsguide-Retsklar.docx',
+          content: docxBuffer.toString('base64'),
         },
       ],
     });

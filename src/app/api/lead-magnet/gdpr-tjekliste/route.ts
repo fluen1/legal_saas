@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { generateGdprChecklistPdf } from '@/lib/pdf/generate-gdpr-checklist';
+import { buildGDPRTjekliste } from '@/lib/documents/gdpr-tjekliste';
 import { validateEmail } from '@/lib/utils/helpers';
 
 export async function POST(request: NextRequest) {
@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
       resource: 'gdpr-tjekliste',
     });
 
-    // Generate PDF
-    const pdfBytes = await generateGdprChecklistPdf();
+    // Generate DOCX
+    const docxBuffer = await buildGDPRTjekliste();
 
     // Send email with attachment
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
             <h2 style="color:#1E3A5F;font-size:20px">Her er din GDPR Tjekliste</h2>
             <p style="font-size:16px;line-height:1.6;color:#374151">
               ${name ? `Hej ${name},` : 'Hej,'}<br><br>
-              Tak fordi du downloadede vores GDPR Tjekliste. Du finder den vedhæftet som PDF.
+              Tak fordi du downloadede vores GDPR Tjekliste. Du finder den vedhæftet som DOCX-fil.
             </p>
             <p style="font-size:16px;line-height:1.6;color:#374151">
               Tjeklisten indeholder de 10 vigtigste GDPR-krav, din virksomhed skal overholde.
@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
       `,
       attachments: [
         {
-          filename: 'GDPR-Tjekliste-Retsklar.pdf',
-          content: Buffer.from(pdfBytes).toString('base64'),
+          filename: 'GDPR-Tjekliste-Retsklar.docx',
+          content: docxBuffer.toString('base64'),
         },
       ],
     });

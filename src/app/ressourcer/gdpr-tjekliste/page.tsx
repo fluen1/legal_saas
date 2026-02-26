@@ -7,7 +7,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Gratis GDPR Tjekliste for Danske Virksomheder | Retsklar',
   description:
-    '10 krav du skal overholde — med lovhenvisninger og konkrete handlinger. Download gratis PDF.',
+    '10 krav du skal overholde — med lovhenvisninger og konkrete handlinger. Download gratis DOCX.',
   openGraph: {
     title: 'Gratis GDPR Tjekliste | Retsklar',
     description: '10 GDPR-krav din virksomhed skal overholde. Download gratis.',
@@ -21,7 +21,7 @@ const INCLUDES = [
   'Lovhenvisninger til GDPR-artikler',
   'Handlingsanvisning for hvert punkt',
   'Afkrydsningsformat — brug den som checkliste',
-  'A4 PDF klar til print eller digital brug',
+  'DOCX-format klar til print, digital brug eller redigering i Word',
 ];
 
 const FAQ = [
@@ -58,7 +58,7 @@ export default function GdprTjeklistePage() {
 
             <p className="mt-4 text-lg leading-relaxed text-text-secondary">
               10 krav du skal overholde — med lovhenvisninger og konkrete handlinger.
-              Download som PDF og brug den til at sikre din virksomheds GDPR-compliance.
+              Download som DOCX og brug den til at sikre din virksomheds GDPR-compliance.
             </p>
 
             <div className="mt-8">
