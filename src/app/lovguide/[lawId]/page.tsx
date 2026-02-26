@@ -42,12 +42,69 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-function formatParagraphText(text: string) {
-  // Split by *Stk.* markers and handle chapter headings
-  return text
-    .split(/\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+interface TextElement {
+  type: 'chapter-heading' | 'section-heading' | 'italic-heading' | 'stk' | 'numbered-item' | 'paragraph';
+  text: string;
+  stkNumber?: number;
+}
+
+function parseTextBlock(content: string, stkNum: number, elements: TextElement[]) {
+  const lines = content.split('\n');
+  let firstTextLine = true;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    if (line.startsWith('## ')) {
+      elements.push({ type: 'chapter-heading', text: line.slice(3) });
+      continue;
+    }
+    if (line.startsWith('### ')) {
+      elements.push({ type: 'section-heading', text: line.slice(4) });
+      continue;
+    }
+    // Standalone italic text (e.g. *Lovens geografiske anvendelsesområde*)
+    if (/^\*[^*]+\*$/.test(line) && !line.startsWith('*Stk.')) {
+      elements.push({ type: 'italic-heading', text: line.slice(1, -1) });
+      continue;
+    }
+    if (/^\d+\)\s/.test(line)) {
+      elements.push({ type: 'numbered-item', text: line });
+      continue;
+    }
+
+    if (firstTextLine && stkNum > 0) {
+      elements.push({ type: 'stk', text: line, stkNumber: stkNum });
+      firstTextLine = false;
+      continue;
+    }
+
+    elements.push({ type: 'paragraph', text: line });
+  }
+}
+
+function parseParagraphText(text: string, hasMultipleStk: boolean): TextElement[] {
+  const elements: TextElement[] = [];
+  // Split by *Stk. N.* markers, capturing the number
+  const splitParts = text.split(/\*Stk\. (\d+)\.\*\s*/);
+
+  // First part = Stk. 1 content (before any *Stk. 2.* marker)
+  const stk1Content = splitParts[0].trim();
+  if (stk1Content) {
+    parseTextBlock(stk1Content, hasMultipleStk ? 1 : 0, elements);
+  }
+
+  // Remaining parts alternate: captured stk number, content
+  for (let i = 1; i < splitParts.length; i += 2) {
+    const stkNum = parseInt(splitParts[i], 10);
+    const content = (splitParts[i + 1] || '').trim();
+    if (content) {
+      parseTextBlock(content, stkNum, elements);
+    }
+  }
+
+  return elements;
 }
 
 export default async function LawPage({ params }: Props) {
@@ -152,40 +209,59 @@ export default async function LawPage({ params }: Props) {
                   </h2>
 
                   <div className="space-y-2 text-sm leading-relaxed text-text-secondary">
-                    {formatParagraphText(para.text).map((line, i) => {
-                      // Chapter headings
-                      if (line.startsWith('## ')) {
-                        return (
-                          <h3
-                            key={i}
-                            className="mt-4 mb-2 font-serif text-base font-bold text-text-primary"
-                          >
-                            {line.replace('## ', '')}
-                          </h3>
-                        );
+                    {parseParagraphText(para.text, (para.stk?.length ?? 0) > 0).map((el, i) => {
+                      switch (el.type) {
+                        case 'chapter-heading':
+                          return (
+                            <h3
+                              key={i}
+                              className="mt-6 mb-2 font-serif text-base font-bold text-text-primary"
+                            >
+                              {el.text}
+                            </h3>
+                          );
+                        case 'section-heading':
+                          return (
+                            <h4
+                              key={i}
+                              className="mt-4 mb-1 font-serif text-sm font-semibold text-text-primary"
+                            >
+                              {el.text}
+                            </h4>
+                          );
+                        case 'italic-heading':
+                          return (
+                            <p key={i} className="mt-1 mb-2 italic text-text-secondary">
+                              {el.text}
+                            </p>
+                          );
+                        case 'stk':
+                          return (
+                            <p
+                              key={i}
+                              className={
+                                el.stkNumber! > 1
+                                  ? 'mt-3 border-l-2 border-blue-200 pl-3'
+                                  : ''
+                              }
+                            >
+                              {el.stkNumber! > 0 && (
+                                <span className="font-semibold text-text-primary">
+                                  Stk. {el.stkNumber}.{' '}
+                                </span>
+                              )}
+                              {el.text}
+                            </p>
+                          );
+                        case 'numbered-item':
+                          return (
+                            <p key={i} className="pl-6">
+                              {el.text}
+                            </p>
+                          );
+                        default:
+                          return <p key={i}>{el.text}</p>;
                       }
-                      // Italic stk markers
-                      if (line.startsWith('*Stk.')) {
-                        return (
-                          <p key={i} className="mt-3 border-l-2 border-blue-200 pl-3">
-                            <span className="font-semibold text-text-primary">
-                              {line.replace(/^\*/, '').replace(/\*$/, '').split('.')[0]}.
-                            </span>
-                            {line
-                              .replace(/^\*[^*]+\*\s*/, '')
-                              .replace(/^\*Stk\. \d+\.\*\s*/, '')}
-                          </p>
-                        );
-                      }
-                      // Numbered sub-items
-                      if (/^\s*\d+\)/.test(line)) {
-                        return (
-                          <p key={i} className="pl-6">
-                            {line}
-                          </p>
-                        );
-                      }
-                      return <p key={i}>{line}</p>;
                     })}
                   </div>
                 </section>
