@@ -54,20 +54,34 @@ export function IssueItem({ issue }: IssueItemProps) {
 
         {issue.lawReferences?.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
-            {issue.lawReferences.map((ref, i) => (
-              <a
-                key={i}
-                href={ref.url || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={ref.description}
-                className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-sm text-gray-700 transition-colors hover:bg-gray-200"
-              >
-                <span>§</span>
-                <span>{ref.law} {ref.paragraph}</span>
-                <ExternalLink className="size-3" />
-              </a>
-            ))}
+            {issue.lawReferences.map((ref, i) => {
+              const hasUrl = ref.url && ref.url !== '#' && ref.url.startsWith('http');
+              const className = "inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-sm text-gray-700 transition-colors hover:bg-gray-200";
+
+              return hasUrl ? (
+                <a
+                  key={i}
+                  href={ref.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={ref.description}
+                  className={className}
+                >
+                  <span>§</span>
+                  <span>{ref.law} {ref.paragraph}</span>
+                  <ExternalLink className="size-3" />
+                </a>
+              ) : (
+                <span
+                  key={i}
+                  title={ref.description}
+                  className={className}
+                >
+                  <span>§</span>
+                  <span>{ref.law} {ref.paragraph}</span>
+                </span>
+              );
+            })}
           </div>
         )}
 

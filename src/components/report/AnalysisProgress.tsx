@@ -5,14 +5,9 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Check, Circle, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, Check, Circle, Loader2, WifiOff } from 'lucide-react';
 
-/**
- * Steps mapped to analysisStatus values and their progress thresholds.
- * A step is "done" when progress exceeds its threshold.
- * A step is "current" when progress is at or above its start threshold.
- */
 const STEPS = [
   { threshold: 0.10, label: 'Genererer virksomhedsprofil' },
   { threshold: 0.25, label: 'Analyserer GDPR & Persondata' },
@@ -24,6 +19,16 @@ const STEPS = [
   { threshold: 0.95, label: 'Verificerer lovhenvisninger' },
 ];
 
+const PAST_TENSE: Record<string, string> = {
+  'Genererer': 'Genereret',
+  'Analyserer': 'Analyseret',
+  'Samler': 'Samlet',
+  'Verificerer': 'Verificeret',
+};
+
+const MAX_POLLS = 120; // 120 polls × 3s = 6 minutes
+const MAX_CONSECUTIVE_ERRORS = 3;
+
 interface AnalysisProgressProps {
   healthCheckId: string;
   pollInterval?: number;
@@ -32,27 +37,56 @@ interface AnalysisProgressProps {
 export function AnalysisProgress({ healthCheckId, pollInterval = 3000 }: AnalysisProgressProps) {
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<'timeout' | 'network' | 'failed' | null>(null);
+  const pollCount = useRef(0);
+  const consecutiveErrors = useRef(0);
 
   useEffect(() => {
     if (!healthCheckId) return;
 
-    const poll = async () => {
+    const poll = async (): Promise<boolean> => {
+      pollCount.current++;
+
+      // Timeout after MAX_POLLS
+      if (pollCount.current >= MAX_POLLS) {
+        setError('timeout');
+        return true;
+      }
+
       try {
         const res = await fetch(`/api/health-check/${healthCheckId}/status`);
-        if (!res.ok) return false;
+        if (!res.ok) {
+          consecutiveErrors.current++;
+          if (consecutiveErrors.current >= MAX_CONSECUTIVE_ERRORS) {
+            setError('network');
+            return true;
+          }
+          return false;
+        }
+
+        // Reset error counter on success
+        consecutiveErrors.current = 0;
         const data = await res.json();
 
         const p = data.progress ?? 0;
-        // Smoothly animate: only increase, never decrease
         setProgress((prev) => Math.max(prev, p));
 
-        if (data.status === 'completed' || data.analysisStatus === 'complete' || data.analysisStatus === 'error') {
+        if (data.analysisStatus === 'error' || data.status === 'failed') {
+          setError('failed');
+          return true;
+        }
+
+        if (data.status === 'completed' || data.analysisStatus === 'complete') {
           setProgress(1);
           setDone(true);
           return true;
         }
       } catch {
-        // ignore
+        consecutiveErrors.current++;
+        if (consecutiveErrors.current >= MAX_CONSECUTIVE_ERRORS) {
+          setError('network');
+          return true;
+        }
       }
       return false;
     };
@@ -67,9 +101,48 @@ export function AnalysisProgress({ healthCheckId, pollInterval = 3000 }: Analysi
     return () => clearInterval(interval);
   }, [healthCheckId, pollInterval]);
 
-  // Determine current step based on progress value
   const currentStepIndex = STEPS.findIndex((s) => progress < s.threshold);
-  // If all thresholds are passed, we're done — currentStepIndex will be -1
+
+  // Error states
+  if (error) {
+    const messages = {
+      timeout: {
+        title: 'Analysen tager længere end forventet',
+        desc: 'Prøv at genindlæse siden. Din analyse er muligvis færdig.',
+      },
+      network: {
+        title: 'Forbindelsesfejl',
+        desc: 'Tjek din internetforbindelse og prøv at genindlæse siden.',
+      },
+      failed: {
+        title: 'Der opstod en fejl under analysen',
+        desc: 'Prøv igen eller kontakt kontakt@retsklar.dk',
+      },
+    };
+    const msg = messages[error];
+
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+        <div className="flex items-start gap-3">
+          {error === 'network' ? (
+            <WifiOff className="mt-0.5 size-5 shrink-0 text-red-500" />
+          ) : (
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-500" />
+          )}
+          <div>
+            <h3 className="text-sm font-semibold text-red-800">{msg.title}</h3>
+            <p className="mt-1 text-sm text-red-700">{msg.desc}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 rounded-md bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            >
+              Genindlæs side
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-lg border border-surface-border bg-white p-4">
@@ -102,15 +175,9 @@ export function AnalysisProgress({ healthCheckId, pollInterval = 3000 }: Analysi
                       : 'text-gray-400'
                 }
               >
-                {isDone ? s.label.replace(/^(Genererer|Analyserer|Samler|Verificerer)/, (m) => {
-                  const pastTense: Record<string, string> = {
-                    'Genererer': 'Genereret',
-                    'Analyserer': 'Analyseret',
-                    'Samler': 'Samlet',
-                    'Verificerer': 'Verificeret',
-                  };
-                  return pastTense[m] ?? m;
-                }) : s.label}
+                {isDone ? s.label.replace(/^(Genererer|Analyserer|Samler|Verificerer)/, (m) =>
+                  PAST_TENSE[m] ?? m
+                ) : s.label}
               </span>
             </div>
           );

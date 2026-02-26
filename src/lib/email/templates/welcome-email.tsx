@@ -20,6 +20,7 @@ interface WelcomeEmailProps {
   score: ScoreLevel;
   issueCount: number;
   upsellUrl: string;
+  unsubscribeUrl: string;
 }
 
 const SCORE_CONFIG: Record<ScoreLevel, { label: string; color: string; emoji: string }> = {
@@ -34,6 +35,7 @@ export function WelcomeEmail({
   score,
   issueCount,
   upsellUrl,
+  unsubscribeUrl,
 }: WelcomeEmailProps) {
   const greeting = name ? `Hej ${name}` : 'Hej der';
   const config = SCORE_CONFIG[score];
@@ -96,7 +98,7 @@ export function WelcomeEmail({
             <Text style={footerText}>
               {`© ${new Date().getFullYear()} Retsklar.dk — Alle rettigheder forbeholdes.`}
             </Text>
-            <Link href="#" style={footerLink}>
+            <Link href={unsubscribeUrl} style={footerLink}>
               Afmeld emails
             </Link>
           </Section>

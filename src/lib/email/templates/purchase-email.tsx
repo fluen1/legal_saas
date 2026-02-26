@@ -95,7 +95,6 @@ export function PurchaseEmail({
               © {new Date().getFullYear()} Retsklar.dk — Alle rettigheder
               forbeholdes.
             </Text>
-            <Text style={footerText}>CVR: XX XX XX XX (placeholder)</Text>
           </Section>
         </Container>
       </Body>

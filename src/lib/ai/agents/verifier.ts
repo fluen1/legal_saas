@@ -106,10 +106,11 @@ export async function runVerifier(
     };
   }
 
+  console.warn("[verifier] Verifikator returnerede ikke submit_verified_report — rapport markeres som uverificeret.");
   return {
     report,
-    qualityScore: 80,
+    qualityScore: 0,
     modifications: [],
-    warnings: ["Verifikator returnerede ikke struktureret output — rapport uændret."],
+    warnings: ["Verifikator returnerede ikke struktureret output — rapport er uverificeret."],
   };
 }

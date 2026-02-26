@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { render } from '@react-email/components';
 import { WelcomeEmail } from './templates/welcome-email';
 import { PurchaseEmail } from './templates/purchase-email';
+import { buildUnsubscribeUrl } from './unsubscribe';
 
 const VERIFIED_FROM = 'Retsklar <noreply@send.retsklar.dk>';
 const FALLBACK_FROM = 'Retsklar <onboarding@resend.dev>';
@@ -70,9 +71,10 @@ export async function sendWelcomeReportEmail({
   const appUrl = getAppUrl();
   const reportUrl = `${appUrl}/helbredstjek/resultat?id=${reportId}`;
   const upsellUrl = reportUrl;
+  const unsubscribeUrl = buildUnsubscribeUrl(to);
 
   const html = await render(
-    WelcomeEmail({ name, reportUrl, score, issueCount, upsellUrl })
+    WelcomeEmail({ name, reportUrl, score, issueCount, upsellUrl, unsubscribeUrl })
   );
 
   return safeSend({

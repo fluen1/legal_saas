@@ -88,7 +88,7 @@ export function Footer() {
             </h4>
             <ul className="space-y-2.5 text-sm text-text-secondary">
               <li>kontakt@retsklar.dk</li>
-              <li>CVR: XX XX XX XX</li>
+              {/* CVR tilføjes når virksomheden er registreret */}
             </ul>
           </div>
         </div>

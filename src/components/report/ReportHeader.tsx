@@ -25,7 +25,7 @@ export function ReportHeader({ overallScore, scoreExplanation, issueCount }: Rep
             className="text-2xl font-bold md:text-4xl"
             style={{ color }}
           >
-            {overallScore === 'green' ? '!' : overallScore === 'yellow' ? '!' : '!'}
+            {overallScore === 'green' ? '✓' : overallScore === 'yellow' ? '⚠' : '!'}
           </span>
         </div>
 
