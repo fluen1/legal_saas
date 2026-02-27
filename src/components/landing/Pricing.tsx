@@ -48,10 +48,11 @@ const PLANS = [
       'Gennemgang med juridisk rådgiver',
       'Skræddersyet prioritering',
     ],
-    cta: 'Køb premium',
-    href: '/helbredstjek',
+    cta: 'Kommer snart',
+    href: '#',
     featured: false,
-    badge: null,
+    badge: 'Kommer snart',
+    disabled: true,
   },
 ];
 
@@ -79,7 +80,11 @@ export function Pricing() {
               }`}
             >
               {plan.badge && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-deep-blue text-white hover:bg-deep-blue">
+                <Badge className={`absolute -top-3 left-1/2 -translate-x-1/2 text-white ${
+                  plan.disabled
+                    ? 'bg-text-secondary hover:bg-text-secondary'
+                    : 'bg-deep-blue hover:bg-deep-blue'
+                }`}>
                   {plan.badge}
                 </Badge>
               )}
@@ -115,18 +120,29 @@ export function Pricing() {
                 ))}
               </ul>
 
-              <Button
-                asChild
-                size="lg"
-                className={`mt-8 w-full py-5 font-semibold ${
-                  plan.featured
-                    ? 'bg-deep-blue hover:bg-deep-blue/90'
-                    : 'border-surface-border bg-white text-deep-blue hover:bg-off-white'
-                }`}
-                variant={plan.featured ? 'default' : 'outline'}
-              >
-                <Link href={plan.href}>{plan.cta}</Link>
-              </Button>
+              {plan.disabled ? (
+                <Button
+                  size="lg"
+                  disabled
+                  className="mt-8 w-full py-5 font-semibold opacity-50"
+                  variant="outline"
+                >
+                  {plan.cta}
+                </Button>
+              ) : (
+                <Button
+                  asChild
+                  size="lg"
+                  className={`mt-8 w-full py-5 font-semibold ${
+                    plan.featured
+                      ? 'bg-deep-blue hover:bg-deep-blue/90'
+                      : 'border-surface-border bg-white text-deep-blue hover:bg-off-white'
+                  }`}
+                  variant={plan.featured ? 'default' : 'outline'}
+                >
+                  <Link href={plan.href}>{plan.cta}</Link>
+                </Button>
+              )}
             </div>
           ))}
         </div>

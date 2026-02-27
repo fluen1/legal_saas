@@ -8,6 +8,8 @@ import { buildSpecialistPrompt } from "@/lib/ai/prompts/specialist";
 import { specialistTool } from "@/lib/ai/tools/specialist-tool";
 import { lawLookupTool } from "@/lib/ai/tools/law-lookup-tool";
 import { getAvailableLaws, lookupLaw } from "@/lib/laws/lookup";
+import { SpecialistAnalysisSchema } from "@/lib/ai/schemas/agent-output";
+import { sendAdminAlert } from "@/lib/email/admin-alert";
 import type { AreaConfig } from "./config";
 import type { CompanyProfile, SpecialistAnalysis } from "./types";
 import type { WizardAnswers } from "@/types/wizard";
@@ -77,7 +79,22 @@ export async function runSpecialistAgent(
   });
 
   if (result.toolUse?.name === "submit_analysis") {
-    return result.toolUse.input as SpecialistAnalysis;
+    const raw = result.toolUse.input;
+    const parsed = SpecialistAnalysisSchema.safeParse(raw);
+
+    if (!parsed.success) {
+      const errorMsg = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n');
+      console.error(`[${config.id}] Zod validation failed:\n${errorMsg}`);
+      sendAdminAlert(
+        `Specialist ${config.id} output validation failed`,
+        `Zod errors:\n${errorMsg}\n\nRaw keys: ${Object.keys(raw as Record<string, unknown>).join(', ')}`
+      ).catch(() => {});
+
+      // Use raw output as fallback — Claude's tool_use schema enforcement should catch most issues
+      return raw as SpecialistAnalysis;
+    }
+
+    return parsed.data as SpecialistAnalysis;
   }
 
   throw new Error(`Specialist ${config.id} did not return tool_use. Got: ${result.text?.slice(0, 200)}`);

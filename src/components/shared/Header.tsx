@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from './Logo';
+import { createClient } from '@/lib/supabase/client';
 
 const NAV_LINKS = [
   { href: '/#hvordan', label: 'Sådan virker det' },
@@ -15,6 +16,14 @@ const NAV_LINKS = [
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user);
+    });
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-surface-border bg-off-white/90 backdrop-blur-md">
@@ -31,6 +40,14 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          {isLoggedIn && (
+            <Link
+              href="/dashboard"
+              className="text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+            >
+              Mine rapporter
+            </Link>
+          )}
           <Button
             asChild
             className="bg-deep-blue font-semibold hover:bg-deep-blue/90"
@@ -65,6 +82,15 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            {isLoggedIn && (
+              <Link
+                href="/dashboard"
+                className="text-sm font-medium text-text-secondary"
+                onClick={() => setMobileOpen(false)}
+              >
+                Mine rapporter
+              </Link>
+            )}
             <Button
               asChild
               className="mt-2 w-full bg-deep-blue font-semibold hover:bg-deep-blue/90"

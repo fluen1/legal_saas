@@ -9,6 +9,7 @@ import { HealthCheckOutputSchema } from '@/lib/ai/schemas/health-check-output';
 import { mapAIOutputToReport, validateEmail } from '@/lib/utils/helpers';
 import { parseClaudeJSON } from '@/lib/ai/json-extraction';
 import { sendWelcomeReportEmail } from '@/lib/email/resend';
+import { sendAdminAlert } from '@/lib/email/admin-alert';
 import { runHealthCheckPipeline } from '@/lib/ai/pipeline';
 import { mapVerifiedReportToHealthCheck } from '@/lib/ai/map-verified-to-report';
 import { WizardAnswers } from '@/types/wizard';
@@ -165,6 +166,12 @@ async function runPipelineBackground(
     console.error('[Health Check] Pipeline failed:', error);
     const reason = error instanceof Error ? error.message : 'Ukendt fejl i pipeline';
     await markFailed(supabase, checkId, reason);
+
+    const isTimeout = reason.includes('timeout') || reason.includes('270s');
+    sendAdminAlert(
+      isTimeout ? 'Pipeline timeout' : 'Pipeline fejl',
+      `Health check: ${checkId}\nEmail: ${email}\nTier: ${tier}\nFejl: ${reason}`
+    ).catch(() => {});
   }
 }
 

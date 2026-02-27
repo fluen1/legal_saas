@@ -103,15 +103,6 @@ export function PaywallOverlay({ healthCheckId }: PaywallOverlayProps) {
                 'Fuld Rapport — 499 kr'
               )}
             </Button>
-            <Button
-              onClick={() => handleUpgrade('premium')}
-              disabled={loading}
-              variant="outline"
-              className="w-full border-deep-blue py-5 text-deep-blue hover:bg-deep-blue/5"
-              size="lg"
-            >
-              Premium + Rådgivning — 1.499 kr
-            </Button>
           </div>
         </div>
       </div>

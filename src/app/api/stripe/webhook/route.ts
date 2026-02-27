@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe/client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendPurchaseEmail } from '@/lib/email/resend';
+import { sendAdminAlert } from '@/lib/email/admin-alert';
 import { TIER_PRICES } from '@/lib/stripe/config';
 import Stripe from 'stripe';
 
@@ -24,6 +25,10 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     console.error('[Stripe Webhook] Signature verification failed:', err);
+    sendAdminAlert(
+      'Stripe webhook signature fejl',
+      `Signature verification failed.\nError: ${err instanceof Error ? err.message : String(err)}`
+    ).catch(() => {});
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
@@ -53,6 +58,10 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('[Stripe Webhook] Supabase update error:', updateError);
+      sendAdminAlert(
+        'Stripe webhook Supabase update fejl',
+        `Health check: ${healthCheckId}\nTier: ${tier}\nError: ${JSON.stringify(updateError)}`
+      ).catch(() => {});
     } else {
       console.log(`[Stripe Webhook] Updated health_check ${healthCheckId} to paid`);
     }

@@ -8,6 +8,8 @@ import { verifierTool } from "@/lib/ai/tools/verifier-tool";
 import { lawLookupTool } from "@/lib/ai/tools/law-lookup-tool";
 import { lookupLaw } from "@/lib/laws/lookup";
 import { VERIFIER_SYSTEM_PROMPT } from "@/lib/ai/prompts/verifier";
+import { VerifiedReportSchema } from "@/lib/ai/schemas/agent-output";
+import { sendAdminAlert } from "@/lib/email/admin-alert";
 import type { OrchestratorOutput, SpecialistAnalysis, VerifiedReport, VerifierModification } from "./types";
 import type { WizardAnswers } from "@/types/wizard";
 
@@ -89,21 +91,32 @@ export async function runVerifier(
     const qs = typeof input.qualityScore === "number" ? input.qualityScore : 80;
     const warns = Array.isArray(input.warnings) ? (input.warnings as string[]) : [];
 
-    // Debug: log shape of returned report
-    const hasAreas = Array.isArray(verifiedReport?.areas);
-    const areaCount = hasAreas ? verifiedReport.areas.length : 0;
-    console.log(`[verifier] submit_verified_report: qualityScore=${qs}, areas=${areaCount}, mods=${mods.length}, warns=${warns.length}`);
-    if (!hasAreas) {
-      console.warn(`[verifier] ADVARSEL: Rapport mangler areas. Top keys: ${Object.keys(verifiedReport ?? {}).join(", ")}`);
-      console.warn(`[verifier] Input top keys: ${Object.keys(input).join(", ")}`);
-    }
-
-    return {
+    const assembled = {
       report: verifiedReport,
       qualityScore: qs,
       modifications: mods,
       warnings: warns,
     };
+
+    const parsed = VerifiedReportSchema.safeParse(assembled);
+
+    if (!parsed.success) {
+      const errorMsg = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n');
+      console.error(`[verifier] Zod validation failed:\n${errorMsg}`);
+      sendAdminAlert(
+        'Verifier output validation failed',
+        `Zod errors:\n${errorMsg}\n\nReport keys: ${Object.keys(verifiedReport ?? {}).join(', ')}\nInput keys: ${Object.keys(input).join(', ')}`
+      ).catch(() => {});
+
+      // Use unvalidated output as fallback
+      const hasAreas = Array.isArray(verifiedReport?.areas);
+      console.warn(`[verifier] Using unvalidated output: areas=${hasAreas ? verifiedReport.areas.length : 0}`);
+      return assembled;
+    }
+
+    const validData = parsed.data;
+    console.log(`[verifier] submit_verified_report: qualityScore=${validData.qualityScore}, areas=${validData.report.areas.length}, mods=${validData.modifications.length}, warns=${validData.warnings.length}`);
+    return validData as VerifiedReport;
   }
 
   console.warn("[verifier] Verifikator returnerede ikke submit_verified_report — rapport markeres som uverificeret.");
