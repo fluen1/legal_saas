@@ -162,33 +162,42 @@ export async function callClaudeWithToolLoop(
   type Message = { role: "user" | "assistant"; content: string | unknown[] };
   const messages: Message[] = [{ role: "user", content: options.userMessage }];
 
-  const buildParams = (msgs: Message[]): Record<string, unknown> => ({
-    model: MODEL,
-    max_tokens: options.maxTokens ?? 16384,
-    system: systemContent,
-    messages: msgs,
-    ...(options.tools?.length
-      ? {
-          tools: options.tools,
-          tool_choice:
-            options.enableThinking
-              ? { type: "auto" as const }
-              : (options.toolChoice ?? { type: "any" as const }),
-        }
-      : {}),
-    ...(options.enableThinking
-      ? {
-          thinking: {
-            type: "enabled" as const,
-            budget_tokens: options.thinkingBudget ?? 5000,
-          },
-        }
-      : {}),
-  });
+  const buildParams = (msgs: Message[], forceFinalize?: boolean): Record<string, unknown> => {
+    // On the last round, force the final tool so the loop always terminates
+    const finalToolName = forceFinalize ? [...finalToolNames][0] : null;
+    const toolChoice = forceFinalize && finalToolName
+      ? { type: "tool" as const, name: finalToolName }
+      : options.enableThinking
+        ? { type: "auto" as const }
+        : (options.toolChoice ?? { type: "any" as const });
+
+    return {
+      model: MODEL,
+      max_tokens: options.maxTokens ?? 16384,
+      system: systemContent,
+      messages: msgs,
+      ...(options.tools?.length
+        ? { tools: options.tools, tool_choice: toolChoice }
+        : {}),
+      ...(options.enableThinking
+        ? {
+            thinking: {
+              type: "enabled" as const,
+              budget_tokens: options.thinkingBudget ?? 5000,
+            },
+          }
+        : {}),
+    };
+  };
 
   for (let round = 0; round < maxRounds; round++) {
-    log.info(`[${options.requestContext ?? "tool-loop"}] Tool round ${round + 1}/${maxRounds}`);
-    const response = await doStreamRequest(client, buildParams(messages), options.requestContext);
+    const isLastRound = round === maxRounds - 1;
+    if (isLastRound) {
+      log.warn(`[${options.requestContext ?? "tool-loop"}] Last round ${round + 1}/${maxRounds} — forcing final tool`);
+    } else {
+      log.info(`[${options.requestContext ?? "tool-loop"}] Tool round ${round + 1}/${maxRounds}`);
+    }
+    const response = await doStreamRequest(client, buildParams(messages, isLastRound), options.requestContext);
     const content = response.content ?? [];
     const toolUses = content.filter(
       (b) => "type" in b && b.type === "tool_use" && "id" in b && "name" in b && "input" in b
