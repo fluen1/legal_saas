@@ -6,6 +6,9 @@
 
 import { NextResponse } from "next/server";
 import { updateLawsDatabase } from "@/lib/laws/fetch-laws-core";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("update-laws");
 
 async function handleUpdate() {
   try {
@@ -13,7 +16,7 @@ async function handleUpdate() {
     const result = await updateLawsDatabase({
       baseDir,
       onlyNewer: true,
-      onLog: (msg) => console.log("[update-laws]", msg),
+      onLog: (msg) => log.info(msg),
     });
 
     return NextResponse.json({
@@ -23,7 +26,7 @@ async function handleUpdate() {
       totalTime: result.totalTime,
     });
   } catch (err) {
-    console.error("[update-laws] Fejl:", err);
+    log.error("Fejl:", err);
     return NextResponse.json(
       { error: "Opdatering fejlede", details: (err as Error).message },
       { status: 500 }

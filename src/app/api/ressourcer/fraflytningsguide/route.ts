@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildFraflytningsguide } from "@/lib/documents/fraflytningsguide";
 import { rateLimit } from "@/lib/rate-limit";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("Ressourcer");
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +21,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[Ressourcer] Fraflytningsguide generation failed:", error);
+    log.error("Fraflytningsguide generation failed:", error);
     return NextResponse.json({ error: "Kunne ikke generere fil" }, { status: 500 });
   }
 }

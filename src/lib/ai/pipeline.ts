@@ -9,6 +9,9 @@ import { runVerifier } from "./agents/verifier";
 import { AREA_CONFIGS } from "./agents/config";
 import type { VerifiedReport } from "./agents/types";
 import type { WizardAnswers } from "@/types/wizard";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("pipeline");
 
 export type PipelineStatusCallback = (status: string, step: string) => Promise<void>;
 
@@ -53,7 +56,7 @@ export async function runHealthCheckPipeline(
     return delay(stagger).then(async () => {
       // Report status BEFORE starting each specialist so progress updates spread across the stagger window
       await onStatus?.(`analyzing_${i + 1}`, stepNames[i] ?? config.name);
-      console.log(`[pipeline] Starting specialist: ${config.name} (stagger: ${stagger}ms)`);
+      log.info(`Starting specialist: ${config.name} (stagger: ${stagger}ms)`);
       const start = Date.now();
       const result = await runSpecialistAgent(config, wizardAnswers, profile);
       timings.specialists[config.name] = (Date.now() - start) / 1000;

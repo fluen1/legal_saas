@@ -17,7 +17,9 @@ import type { HealthCheckReport } from '@/types/report';
 import { WizardAnswersSchema } from '@/lib/validation/wizard-answers';
 import { rateLimit } from '@/lib/rate-limit';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createLogger } from '@/lib/logger';
 
+const log = createLogger('Health Check');
 const USE_MULTI_AGENT = process.env.USE_MULTI_AGENT_PIPELINE === 'true';
 
 interface HealthCheckRequestBody {
@@ -43,7 +45,7 @@ async function updateHealthCheck(
     .update(data)
     .eq('id', checkId);
   if (error) {
-    console.error(`[Health Check] Supabase update failed for ${checkId}:`, error);
+    log.error(`Supabase update failed for ${checkId}:`, error);
   }
   return error;
 }
@@ -54,7 +56,7 @@ async function markFailed(
   checkId: string,
   reason: string
 ) {
-  console.error(`[Health Check] Marking ${checkId} as failed: ${reason}`);
+  log.error(`Marking ${checkId} as failed: ${reason}`);
   await updateHealthCheck(supabase, checkId, {
     status: 'failed',
     analysis_status: 'error',
@@ -92,7 +94,7 @@ async function runPipelineBackground(
 
       // Check verifier quality — if qualityScore is 0 or report has no areas, mark as unverified
       if (verified.qualityScore === 0 || !Array.isArray(verified.report?.areas) || verified.report.areas.length === 0) {
-        console.warn(`[Health Check] Low quality report for ${checkId}: qualityScore=${verified.qualityScore}`);
+        log.warn(`Low quality report for ${checkId}: qualityScore=${verified.qualityScore}`);
       }
 
       report = mapVerifiedReportToHealthCheck(verified);
@@ -110,14 +112,14 @@ async function runPipelineBackground(
       try {
         jsonData = await parseClaudeJSON(rawResponse);
       } catch (parseError) {
-        console.error('[Health Check] JSON parse failed:', parseError);
+        log.error('JSON parse failed:', parseError);
         await markFailed(supabase, checkId, 'JSON-parsing af AI-svar fejlede');
         return;
       }
 
       const parsed = HealthCheckOutputSchema.safeParse(jsonData);
       if (!parsed.success) {
-        console.error('AI output validation failed:', parsed.error.format());
+        log.error('AI output validation failed:', parsed.error.format());
         await markFailed(supabase, checkId, 'AI-output matchede ikke forventet format');
         return;
       }
@@ -135,7 +137,7 @@ async function runPipelineBackground(
     });
 
     if (updateErr) {
-      console.error(`[Health Check] CRITICAL: Report generated but could not save for ${checkId}`);
+      log.error(`CRITICAL: Report generated but could not save for ${checkId}`);
       return;
     }
 
@@ -148,7 +150,7 @@ async function runPipelineBackground(
         score: report.overallScore,
         issueCount: totalIssues,
       }).catch((err) =>
-        console.error('[Health Check] Velkomst-email fejlede:', err)
+        log.error('Velkomst-email fejlede:', err)
       );
 
       // Start nurture sequence for free users
@@ -161,12 +163,12 @@ async function runPipelineBackground(
           next_send_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
         })
         .then(({ error: nurtureErr }) => {
-          if (nurtureErr) console.error('[Health Check] Nurture insert failed:', nurtureErr);
-          else console.log(`[Health Check] Nurture sequence started for ${email}`);
+          if (nurtureErr) log.error('Nurture insert failed:', nurtureErr);
+          else log.info(`Nurture sequence started for ${email}`);
         });
     }
   } catch (error) {
-    console.error('[Health Check] Pipeline failed:', error);
+    log.error('Pipeline failed:', error);
     const reason = error instanceof Error ? error.message : 'Ukendt fejl i pipeline';
     await markFailed(supabase, checkId, reason);
 
@@ -198,7 +200,7 @@ export async function POST(request: NextRequest) {
     const validated = WizardAnswersSchema.safeParse(answers);
     if (!validated.success) {
       const issues = validated.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
-      console.warn('[Health Check] Invalid wizard answers:', issues);
+      log.warn('Invalid wizard answers:', issues);
       return NextResponse.json(
         { error: 'Ugyldige svar', details: issues },
         { status: 400 }
@@ -250,7 +252,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (insertError || !inserted) {
-        console.error('Supabase insert error:', insertError);
+        log.error('Supabase insert error:', insertError);
         return NextResponse.json({ error: 'Kunne ikke gemme data' }, { status: 500 });
       }
       checkId = inserted.id;
@@ -269,7 +271,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ healthCheckId: checkId });
   } catch (error) {
-    console.error('Health check API error:', error);
+    log.error('API error:', error);
     return NextResponse.json(
       { error: 'Der opstod en fejl. Prøv venligst igen.' },
       { status: 500 }

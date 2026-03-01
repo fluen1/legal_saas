@@ -5,19 +5,21 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { Tool } from "@anthropic-ai/sdk/resources/messages";
+import { createLogger, requireEnv } from "@/lib/logger";
 
 let _client: Anthropic | null = null;
 
 function getClient() {
   if (!_client) {
     _client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY!,
+      apiKey: requireEnv("ANTHROPIC_API_KEY"),
       timeout: 10 * 60 * 1000, // 10 minutes
     });
   }
   return _client;
 }
 
+const log = createLogger("Claude");
 const MODEL = "claude-opus-4-6";
 
 export interface CallClaudeOptions {
@@ -57,9 +59,9 @@ async function doStreamRequest(
       if (status === 429 && attempt < 2) {
         const suggested = retryAfter ? parseInt(retryAfter, 10) * 1000 : 120000;
         const waitMs = Math.max(suggested, 60000);
-        console.warn(`[Claude] Rate limit 429 — venter ${Math.round(waitMs / 1000)}s...`);
+        log.warn(`Rate limit 429 — venter ${Math.round(waitMs / 1000)}s...`);
         await new Promise((r) => setTimeout(r, waitMs));
-        console.warn(`[Claude] Forsøger igen (forsøg ${attempt + 2}/3)...`);
+        log.warn(`Forsøger igen (forsøg ${attempt + 2}/3)...`);
         continue;
       }
       throw err;
@@ -71,7 +73,7 @@ async function doStreamRequest(
 function extractResult(response: Anthropic.Messages.Message): CallClaudeResult {
   const content = response.content ?? [];
   if (response.stop_reason === "max_tokens") {
-    console.warn(`[Claude] ADVARSEL: Response trunkeret (stop_reason=max_tokens). Output kan være ufuldstændigt.`);
+    log.warn('ADVARSEL: Response trunkeret (stop_reason=max_tokens). Output kan være ufuldstændigt.');
   }
   const toolBlock = content.find((b) => b.type === "tool_use");
   const textBlock = content.find((b) => b.type === "text");

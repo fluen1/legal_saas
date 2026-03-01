@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createLogger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -17,8 +18,9 @@ export async function GET() {
       .or(`user_id.eq.${user.id},email.eq.${user.email}`)
       .order('created_at', { ascending: false });
 
+    const log = createLogger('Dashboard API');
     if (error) {
-      console.error('[Dashboard API] Supabase error:', error);
+      log.error('Supabase error:', error);
       return NextResponse.json({ error: 'Kunne ikke hente data' }, { status: 500 });
     }
 

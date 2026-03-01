@@ -12,6 +12,9 @@ import { VerifiedReportSchema } from "@/lib/ai/schemas/agent-output";
 import { sendAdminAlert } from "@/lib/email/admin-alert";
 import type { OrchestratorOutput, SpecialistAnalysis, VerifiedReport, VerifierModification } from "./types";
 import type { WizardAnswers } from "@/types/wizard";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("verifier");
 
 export async function runVerifier(
   report: OrchestratorOutput,
@@ -47,7 +50,7 @@ export async function runVerifier(
         return JSON.stringify({ error: `Ukendt tool: ${name}` });
       }
       if (totalTokens >= TOKEN_BUDGET) {
-        console.warn(`[verifier] Token-budget overskredet (${(totalTokens / 1000).toFixed(1)}k). Stopper nye opslag.`);
+        log.warn(`Token-budget overskredet (${(totalTokens / 1000).toFixed(1)}k). Stopper nye opslag.`);
         return JSON.stringify({
           error: "Token-budget overskredet (25.000). Afslut din verificering med de data du har. Brug submit_verified_report nu.",
         });
@@ -67,11 +70,11 @@ export async function runVerifier(
       totalTokens += lookupResult.tokenEstimate;
       const k = (lookupResult.tokenEstimate / 1000).toFixed(1);
       const totalK = (totalTokens / 1000).toFixed(1);
-      console.log(
-        `[verifier] lookup_law: ${lawId}${params.paragraphs ? ` ${params.paragraphs}` : ""} (${k}k tokens, total: ${totalK}k)`
+      log.info(
+        `lookup_law: ${lawId}${params.paragraphs ? ` ${params.paragraphs}` : ""} (${k}k tokens, total: ${totalK}k)`
       );
       if (totalTokens > TOKEN_BUDGET) {
-        console.warn(`[verifier] ADVARSEL: Token-budget overskredet (${totalK}k)`);
+        log.warn(`ADVARSEL: Token-budget overskredet (${totalK}k)`);
       }
       return JSON.stringify({
         lawId: lookupResult.lawId,
@@ -102,7 +105,7 @@ export async function runVerifier(
 
     if (!parsed.success) {
       const errorMsg = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n');
-      console.error(`[verifier] Zod validation failed:\n${errorMsg}`);
+      log.error(`Zod validation failed:\n${errorMsg}`);
       sendAdminAlert(
         'Verifier output validation failed',
         `Zod errors:\n${errorMsg}\n\nReport keys: ${Object.keys(verifiedReport ?? {}).join(', ')}\nInput keys: ${Object.keys(input).join(', ')}`
@@ -110,16 +113,16 @@ export async function runVerifier(
 
       // Use unvalidated output as fallback
       const hasAreas = Array.isArray(verifiedReport?.areas);
-      console.warn(`[verifier] Using unvalidated output: areas=${hasAreas ? verifiedReport.areas.length : 0}`);
+      log.warn(`Using unvalidated output: areas=${hasAreas ? verifiedReport.areas.length : 0}`);
       return assembled;
     }
 
     const validData = parsed.data;
-    console.log(`[verifier] submit_verified_report: qualityScore=${validData.qualityScore}, areas=${validData.report.areas.length}, mods=${validData.modifications.length}, warns=${validData.warnings.length}`);
+    log.info(`submit_verified_report: qualityScore=${validData.qualityScore}, areas=${validData.report.areas.length}, mods=${validData.modifications.length}, warns=${validData.warnings.length}`);
     return validData as VerifiedReport;
   }
 
-  console.warn("[verifier] Verifikator returnerede ikke submit_verified_report — rapport markeres som uverificeret.");
+  log.warn("Verifikator returnerede ikke submit_verified_report — rapport markeres som uverificeret.");
   return {
     report,
     qualityScore: 0,

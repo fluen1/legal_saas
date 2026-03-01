@@ -8,6 +8,7 @@ import { callClaudeAdvanced } from "@/lib/ai/claude-advanced";
 import { PROFILE_SYSTEM_PROMPT } from "@/lib/ai/prompts/profile";
 import type { CompanyProfile } from "./types";
 import type { WizardAnswers } from "@/types/wizard";
+import { createLogger } from "@/lib/logger";
 
 const CompanyProfileSchema = z.object({
   type: z.string(),
@@ -50,6 +51,8 @@ function buildFallbackProfile(answers: WizardAnswers): CompanyProfile {
   };
 }
 
+const log = createLogger("profile-generator");
+
 export async function generateCompanyProfile(answers: WizardAnswers): Promise<CompanyProfile> {
   try {
     const result = await callClaudeAdvanced({
@@ -66,15 +69,15 @@ export async function generateCompanyProfile(answers: WizardAnswers): Promise<Co
     try {
       parsed = JSON.parse(jsonStr);
     } catch (parseErr) {
-      console.error("[profile-generator] JSON.parse failed:", parseErr);
-      console.warn("[profile-generator] Falling back to wizard-based profile");
+      log.error("JSON.parse failed:", parseErr);
+      log.warn("Falling back to wizard-based profile");
       return buildFallbackProfile(answers);
     }
 
     const validated = CompanyProfileSchema.safeParse(parsed);
     if (!validated.success) {
-      console.error("[profile-generator] Zod validation failed:", validated.error.issues);
-      console.warn("[profile-generator] Falling back to wizard-based profile");
+      log.error("Zod validation failed:", validated.error.issues);
+      log.warn("Falling back to wizard-based profile");
       return buildFallbackProfile(answers);
     }
 
@@ -84,8 +87,8 @@ export async function generateCompanyProfile(answers: WizardAnswers): Promise<Co
       riskFactors: validated.data.riskFactors ?? [],
     };
   } catch (error) {
-    console.error("[profile-generator] Unexpected error:", error);
-    console.warn("[profile-generator] Falling back to wizard-based profile");
+    log.error("Unexpected error:", error);
+    log.warn("Falling back to wizard-based profile");
     return buildFallbackProfile(answers);
   }
 }

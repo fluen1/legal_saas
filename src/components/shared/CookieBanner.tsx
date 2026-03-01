@@ -3,6 +3,21 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+/**
+ * Returns the user's cookie consent status.
+ * Use this to gate analytics/tracking scripts:
+ *   if (getCookieConsent() === 'accepted') { loadAnalytics(); }
+ */
+export function getCookieConsent(): 'accepted' | 'rejected' | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('cookie_consent='));
+  if (!match) return null;
+  const value = match.split('=')[1];
+  return value === 'accepted' || value === 'rejected' ? value : null;
+}
+
 export function CookieBanner() {
   const [visible, setVisible] = useState(false);
 

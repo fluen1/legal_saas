@@ -5,13 +5,16 @@ import { sendPurchaseEmail } from '@/lib/email/resend';
 import { sendAdminAlert } from '@/lib/email/admin-alert';
 import { TIER_PRICES } from '@/lib/stripe/config';
 import Stripe from 'stripe';
+import { createLogger, requireEnv } from '@/lib/logger';
+
+const log = createLogger('Stripe Webhook');
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
 
   if (!signature) {
-    console.error('[Stripe Webhook] Missing stripe-signature header');
+    log.error('Missing stripe-signature header');
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
   }
 
@@ -21,10 +24,10 @@ export async function POST(request: NextRequest) {
     event = getStripe().webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      requireEnv('STRIPE_WEBHOOK_SECRET')
     );
   } catch (err) {
-    console.error('[Stripe Webhook] Signature verification failed:', err);
+    log.error('Signature verification failed:', err);
     sendAdminAlert(
       'Stripe webhook signature fejl',
       `Signature verification failed.\nError: ${err instanceof Error ? err.message : String(err)}`
@@ -32,16 +35,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  console.log(`[Stripe Webhook] Received event: ${event.type} (${event.id})`);
+  log.info(`Received event: ${event.type} (${event.id})`);
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     const { healthCheckId, tier } = session.metadata || {};
 
-    console.log(`[Stripe Webhook] checkout.session.completed — healthCheckId=${healthCheckId}, tier=${tier}`);
+    log.info(`checkout.session.completed — healthCheckId=${healthCheckId}, tier=${tier}`);
 
     if (!healthCheckId) {
-      console.error('[Stripe Webhook] Missing healthCheckId in session metadata');
+      log.error('Missing healthCheckId in session metadata');
       return NextResponse.json({ error: 'Missing metadata' }, { status: 400 });
     }
 
@@ -57,13 +60,13 @@ export async function POST(request: NextRequest) {
       .eq('id', healthCheckId);
 
     if (updateError) {
-      console.error('[Stripe Webhook] Supabase update error:', updateError);
+      log.error('Supabase update error:', updateError);
       sendAdminAlert(
         'Stripe webhook Supabase update fejl',
         `Health check: ${healthCheckId}\nTier: ${tier}\nError: ${JSON.stringify(updateError)}`
       ).catch(() => {});
     } else {
-      console.log(`[Stripe Webhook] Updated health_check ${healthCheckId} to paid`);
+      log.info(`Updated health_check ${healthCheckId} to paid`);
     }
 
     const { data: check } = await supabase
@@ -84,11 +87,66 @@ export async function POST(request: NextRequest) {
         tier: purchaseTier,
         amount,
       }).catch((err) =>
-        console.error('[Stripe Webhook] Email send error:', err)
+        log.error('Email send error:', err)
       );
     }
+  } else if (event.type === 'charge.refunded') {
+    const charge = event.data.object as Stripe.Charge;
+    const paymentIntent = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id;
+
+    log.info(`charge.refunded — paymentIntent=${paymentIntent}`);
+
+    if (paymentIntent) {
+      const supabase = createAdminClient();
+      const { data: check } = await supabase
+        .from('health_checks')
+        .select('id, email')
+        .eq('stripe_payment_intent_id', paymentIntent)
+        .single();
+
+      if (check) {
+        await supabase
+          .from('health_checks')
+          .update({ payment_status: 'refunded' })
+          .eq('id', check.id);
+
+        log.info(`Refunded health_check ${check.id}`);
+        sendAdminAlert(
+          'Stripe refund behandlet',
+          `Health check: ${check.id}\nEmail: ${check.email}\nPayment Intent: ${paymentIntent}`
+        ).catch(() => {});
+      }
+    }
+  } else if (event.type === 'charge.dispute.created') {
+    const dispute = event.data.object as Stripe.Dispute;
+    const paymentIntent = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : dispute.payment_intent?.id;
+
+    log.warn(`charge.dispute.created — paymentIntent=${paymentIntent}, reason=${dispute.reason}`);
+
+    if (paymentIntent) {
+      const supabase = createAdminClient();
+      const { data: check } = await supabase
+        .from('health_checks')
+        .select('id, email')
+        .eq('stripe_payment_intent_id', paymentIntent)
+        .single();
+
+      if (check) {
+        await supabase
+          .from('health_checks')
+          .update({ payment_status: 'disputed' })
+          .eq('id', check.id);
+
+        log.warn(`Disputed health_check ${check.id}`);
+      }
+
+      sendAdminAlert(
+        'STRIPE DISPUTE — kræver handling',
+        `Health check: ${check?.id ?? 'ukendt'}\nEmail: ${check?.email ?? 'ukendt'}\nPayment Intent: ${paymentIntent}\nÅrsag: ${dispute.reason}\nBeløb: ${(dispute.amount / 100).toFixed(2)} ${dispute.currency.toUpperCase()}\n\nLog ind på Stripe Dashboard for at besvare disputen.`
+      ).catch(() => {});
+    }
   } else {
-    console.log(`[Stripe Webhook] Unhandled event type: ${event.type}`);
+    log.info(`Unhandled event type: ${event.type}`);
   }
 
   return NextResponse.json({ received: true });

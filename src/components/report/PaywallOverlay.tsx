@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Lock, Loader2, CheckCircle2 } from 'lucide-react';
-import { PRICES } from '@/config/constants';
+import { PRICES, WIZARD } from '@/config/constants';
 
 interface PaywallOverlayProps {
   healthCheckId: string;
 }
 
-const FEATURES = [
+const FULL_FEATURES = [
   'Alle compliance-områder',
   'Detaljerede lovhenvisninger',
   'Prioriteret handlingsplan',
@@ -89,7 +89,7 @@ export function PaywallOverlay({ healthCheckId }: PaywallOverlayProps) {
 
           {/* Feature list */}
           <ul className="mt-5 space-y-2 text-left text-sm">
-            {FEATURES.map((feature) => (
+            {FULL_FEATURES.map((feature) => (
               <li key={feature} className="flex items-center gap-2 text-text-primary">
                 <CheckCircle2 className="size-4 shrink-0 text-score-green" />
                 {feature}
@@ -109,6 +109,15 @@ export function PaywallOverlay({ healthCheckId }: PaywallOverlayProps) {
               ) : (
                 `Fuld Rapport — ${PRICES.full.label}`
               )}
+            </Button>
+            <Button
+              onClick={() => handleUpgrade('premium')}
+              disabled={loading}
+              variant="outline"
+              className="w-full gap-2 border-deep-blue/30 py-6 text-base font-semibold text-deep-blue hover:bg-deep-blue/5"
+              size="lg"
+            >
+              {`Premium + ${WIZARD.consultationMinutes} min. rådgivning — ${PRICES.premium.label}`}
             </Button>
             {error && (
               <p className="text-sm text-red-600">{error}</p>

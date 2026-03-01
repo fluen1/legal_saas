@@ -7,7 +7,9 @@ import {
   FROM,
   REPLY_TO,
 } from '@/lib/email/nurture/send-nurture';
+import { createLogger } from '@/lib/logger';
 
+const log = createLogger('Nurture Cron');
 const BATCH_SIZE = 50;
 
 export async function GET(request: NextRequest) {
@@ -31,7 +33,7 @@ export async function GET(request: NextRequest) {
     .limit(BATCH_SIZE);
 
   if (fetchError) {
-    console.error('[Nurture Cron] Fetch error:', fetchError);
+    log.error('Fetch error:', fetchError);
     return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 
@@ -119,7 +121,7 @@ export async function GET(request: NextRequest) {
       });
 
       if (sendResult.error) {
-        console.error(`[Nurture Cron] Send failed for ${record.email}:`, sendResult.error);
+        log.error(`Send failed for ${record.email}:`, sendResult.error);
         errors++;
         continue;
       }
@@ -138,11 +140,11 @@ export async function GET(request: NextRequest) {
 
       sent++;
     } catch (err) {
-      console.error(`[Nurture Cron] Error processing ${record.id}:`, err);
+      log.error(`Error processing ${record.id}:`, err);
       errors++;
     }
   }
 
-  console.log(`[Nurture Cron] Done: sent=${sent}, skipped=${skipped}, errors=${errors}`);
+  log.info(`Done: sent=${sent}, skipped=${skipped}, errors=${errors}`);
   return NextResponse.json({ processed: dueEmails.length, sent, skipped, errors });
 }

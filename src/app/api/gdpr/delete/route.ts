@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('GDPR Delete');
 
 export async function DELETE() {
   try {
@@ -40,13 +43,13 @@ export async function DELETE() {
     // Delete auth user via admin API
     const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(userId);
     if (deleteAuthError) {
-      console.error('[GDPR Delete] Auth user deletion failed:', deleteAuthError);
+      log.error('Auth user deletion failed:', deleteAuthError);
       // Data is already deleted — log but don't fail the response
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[GDPR Delete] Error:', error);
+    log.error('Error:', error);
     return NextResponse.json({ error: 'Sletning fejlede. Kontakt kontakt@retsklar.dk' }, { status: 500 });
   }
 }

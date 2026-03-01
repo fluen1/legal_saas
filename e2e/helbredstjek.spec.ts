@@ -51,8 +51,9 @@ test.describe('Helbredstjek wizard E2E', () => {
     await page.getByTestId('contracts_has_ip_clauses-no').click();
     await page.getByTestId('wizard-next').click();
 
-    // Opsummering - indtast email
+    // Opsummering - indtast email og accepter samtykke
     await page.getByTestId('summary-email').fill('test@example.com');
+    await page.getByTestId('summary-consent').click();
 
     // Overvåg API-kald
     let apiResponse: { status?: number; body?: string } = {};
@@ -98,6 +99,7 @@ test.describe('Helbredstjek wizard E2E', () => {
 
     // Assertioner
     expect(page.url()).toContain('resultat');
-    expect(lawRefCount).toBeGreaterThanOrEqual(0);
+    expect(lawRefCount).toBeGreaterThan(0);
+    expect(consoleErrors).toEqual([]);
   });
 });

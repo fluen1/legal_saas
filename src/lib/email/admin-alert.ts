@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { EMAILS } from '@/config/constants';
+import { createLogger } from '@/lib/logger';
 
 let _resend: Resend | null = null;
 
@@ -13,10 +14,12 @@ function getResend() {
 const FROM = `Retsklar Alerts <${EMAILS.noreply}>`;
 const FALLBACK_FROM = EMAILS.fallbackFrom;
 
+const log = createLogger('Admin Alert');
+
 export async function sendAdminAlert(subject: string, body: string) {
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) {
-    console.warn('[Admin Alert] ADMIN_EMAIL not configured. Alert not sent:', subject);
+    log.warn('ADMIN_EMAIL not configured. Alert not sent:', subject);
     return;
   }
 
@@ -48,8 +51,8 @@ export async function sendAdminAlert(subject: string, body: string) {
       });
     }
 
-    console.log(`[Admin Alert] Sent: ${subject}`);
+    log.info(`Sent: ${subject}`);
   } catch (err) {
-    console.error('[Admin Alert] Failed to send:', subject, err);
+    log.error('Failed to send:', subject, err);
   }
 }

@@ -4,6 +4,7 @@ import { WelcomeEmail } from './templates/welcome-email';
 import { PurchaseEmail } from './templates/purchase-email';
 import { buildUnsubscribeUrl } from './unsubscribe';
 import { EMAILS } from '@/config/constants';
+import { createLogger } from '@/lib/logger';
 
 const VERIFIED_FROM = EMAILS.from;
 const FALLBACK_FROM = EMAILS.fallbackFrom;
@@ -22,30 +23,30 @@ function getAppUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 }
 
+const log = createLogger('Email');
+
 async function safeSend(params: Parameters<Resend['emails']['send']>[0]) {
   try {
     const result = await getResend().emails.send(params);
     if (result.error) {
       if (result.error.message?.includes('not verified')) {
-        console.warn(
-          `[Email] Domæne ikke verificeret — bruger Resend default afsender. Verificér domænet i Resend dashboard.`
-        );
+        log.warn('Domæne ikke verificeret — bruger Resend default afsender. Verificér domænet i Resend dashboard.');
         const fallbackParams = { ...params, from: FALLBACK_FROM };
         const fallbackResult = await getResend().emails.send(fallbackParams);
         if (fallbackResult.error) {
-          console.error('[Email] Fallback send fejlede:', fallbackResult.error);
+          log.error('Fallback send fejlede:', fallbackResult.error);
           return fallbackResult;
         }
-        console.log(`[Email] Sendt med fallback-afsender til ${params.to}`);
+        log.info(`Sendt med fallback-afsender til ${params.to}`);
         return fallbackResult;
       }
-      console.error('[Email] Send fejlede:', result.error);
+      log.error('Send fejlede:', result.error);
       return result;
     }
-    console.log(`[Email] Sendt til ${params.to} — id: ${result.data?.id}`);
+    log.info(`Sendt til ${params.to} — id: ${result.data?.id}`);
     return result;
   } catch (err) {
-    console.error('[Email] Uventet fejl:', err);
+    log.error('Uventet fejl:', err);
     throw err;
   }
 }

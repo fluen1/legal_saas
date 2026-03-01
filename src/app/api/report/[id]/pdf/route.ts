@@ -3,6 +3,9 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { generateReportPDF } from '@/lib/pdf/generate-report-pdf';
 import type { HealthCheckReport } from '@/types/report';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('PDF');
 
 export async function GET(
   _request: NextRequest,
@@ -61,7 +64,7 @@ export async function GET(
       },
     });
   } catch (err) {
-    console.error('PDF generation error:', err);
+    log.error('Generation error:', err);
     return NextResponse.json(
       { error: 'Kunne ikke generere PDF' },
       { status: 500 },

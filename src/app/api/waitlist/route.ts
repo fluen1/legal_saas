@@ -3,6 +3,9 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendWelcomeEmail } from '@/lib/email/resend';
 import { validateEmail } from '@/lib/utils/helpers';
 import { rateLimit } from '@/lib/rate-limit';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Waitlist');
 
 interface WaitlistRequestBody {
   email: string;
@@ -31,15 +34,15 @@ export async function POST(request: NextRequest) {
       );
 
     if (upsertError) {
-      console.error('Waitlist upsert error:', upsertError);
+      log.error('Upsert error:', upsertError);
       return NextResponse.json({ error: 'Kunne ikke tilmelde' }, { status: 500 });
     }
 
-    await sendWelcomeEmail(email).catch(console.error);
+    await sendWelcomeEmail(email).catch((err) => log.error('Email error:', err));
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Waitlist API error:', error);
+    log.error('API error:', error);
     return NextResponse.json({ error: 'Noget gik galt' }, { status: 500 });
   }
 }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildEjeraftale } from "@/lib/documents/ejeraftale";
 import { rateLimit } from "@/lib/rate-limit";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("Ressourcer");
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +21,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[Ressourcer] Ejeraftale generation failed:", error);
+    log.error("Ejeraftale generation failed:", error);
     return NextResponse.json({ error: "Kunne ikke generere fil" }, { status: 500 });
   }
 }

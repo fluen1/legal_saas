@@ -5,6 +5,9 @@ import { buildGDPRTjekliste } from '@/lib/documents/gdpr-tjekliste';
 import { validateEmail } from '@/lib/utils/helpers';
 import { rateLimit } from '@/lib/rate-limit';
 import { EMAILS } from '@/config/constants';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Lead Magnet');
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,7 +79,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (sendError) {
-      console.error('[Lead Magnet] Email send failed:', sendError);
+      log.error('Email send failed:', sendError);
       return NextResponse.json({ error: 'Kunne ikke sende email' }, { status: 500 });
     }
 
@@ -89,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Lead Magnet] Error:', error);
+    log.error('Error:', error);
     return NextResponse.json({ error: 'Der opstod en fejl' }, { status: 500 });
   }
 }

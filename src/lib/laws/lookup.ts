@@ -5,7 +5,9 @@
 
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
+import { createLogger } from "@/lib/logger";
 
+const log = createLogger("lookup_law");
 const LAWS_DIR = join(process.cwd(), "src", "data", "laws");
 const TOKENS_PER_WORD = 1.3;
 const FULL_LAW_TOKEN_LIMIT = 15_000;
@@ -204,8 +206,8 @@ export function lookupLaw(params: LawLookupParams): LawLookupResult | null {
     const tokenEstimate = estimateTokens(content);
     if (tokenEstimate > FULL_LAW_TOKEN_LIMIT) {
       const toc = buildTableOfContents(content);
-      console.warn(
-        `[lookup_law] ${params.lawId}: Hele loven er ${tokenEstimate} tokens — returnerer indholdsfortegnelse i stedet`
+      log.warn(
+        `${params.lawId}: Hele loven er ${tokenEstimate} tokens — returnerer indholdsfortegnelse i stedet`
       );
       return {
         ...baseResult,

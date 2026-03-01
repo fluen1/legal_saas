@@ -1,11 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { requireEnv } from '@/lib/logger';
 
 let _anthropic: Anthropic | null = null;
 
 function getClient() {
   if (!_anthropic) {
     _anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY!,
+      apiKey: requireEnv('ANTHROPIC_API_KEY'),
     });
   }
   return _anthropic;

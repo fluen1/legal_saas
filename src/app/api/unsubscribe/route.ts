@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyUnsubscribeToken } from '@/lib/email/unsubscribe';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Unsubscribe');
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +26,7 @@ export async function POST(request: NextRequest) {
       );
 
     if (error) {
-      console.error('[Unsubscribe] Supabase error:', error);
+      log.error('Supabase error:', error);
       return NextResponse.json({ error: 'Kunne ikke gemme afmelding' }, { status: 500 });
     }
 

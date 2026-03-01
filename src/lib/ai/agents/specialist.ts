@@ -13,12 +13,14 @@ import { sendAdminAlert } from "@/lib/email/admin-alert";
 import type { AreaConfig } from "./config";
 import type { CompanyProfile, SpecialistAnalysis } from "./types";
 import type { WizardAnswers } from "@/types/wizard";
+import { createLogger } from "@/lib/logger";
 
 export async function runSpecialistAgent(
   config: AreaConfig,
   answers: WizardAnswers,
   profile: CompanyProfile
 ): Promise<SpecialistAnalysis> {
+  const log = createLogger(config.id);
   const availableLaws = getAvailableLaws(config.laws);
   const systemPrompt = buildSpecialistPrompt(config, profile, availableLaws, answers);
   const userMessage = `Analysér denne virksomheds juridiske status inden for ${config.name} ved at følge subsumtionsmodellen (Faktum → Jus → Opslag → Subsumtion → Retsfølge).`;
@@ -41,7 +43,7 @@ export async function runSpecialistAgent(
         return JSON.stringify({ error: `Ukendt tool: ${name}` });
       }
       if (totalTokens >= TOKEN_BUDGET) {
-        console.warn(`[${config.id}] Token-budget overskredet (${(totalTokens / 1000).toFixed(1)}k). Stopper nye opslag.`);
+        log.warn(`Token-budget overskredet (${(totalTokens / 1000).toFixed(1)}k). Stopper nye opslag.`);
         return JSON.stringify({
           error: "Token-budget overskredet (25.000). Afslut din analyse med de data du har. Brug submit_analysis nu.",
         });
@@ -61,11 +63,11 @@ export async function runSpecialistAgent(
       totalTokens += lookupResult.tokenEstimate;
       const k = (lookupResult.tokenEstimate / 1000).toFixed(1);
       const totalK = (totalTokens / 1000).toFixed(1);
-      console.log(
-        `[${config.id}] lookup_law: ${lawId}${params.paragraphs ? ` ${params.paragraphs}` : ""} (${k}k tokens, total: ${totalK}k)`
+      log.info(
+        `lookup_law: ${lawId}${params.paragraphs ? ` ${params.paragraphs}` : ""} (${k}k tokens, total: ${totalK}k)`
       );
       if (totalTokens > TOKEN_BUDGET) {
-        console.warn(`[${config.id}] ADVARSEL: Token-budget overskredet (${totalK}k)`);
+        log.warn(`ADVARSEL: Token-budget overskredet (${totalK}k)`);
       }
       return JSON.stringify({
         lawId: lookupResult.lawId,
@@ -84,13 +86,12 @@ export async function runSpecialistAgent(
 
     if (!parsed.success) {
       const errorMsg = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n');
-      console.error(`[${config.id}] Zod validation failed:\n${errorMsg}`);
+      log.error(`Zod validation failed:\n${errorMsg}`);
       sendAdminAlert(
         `Specialist ${config.id} output validation failed`,
         `Zod errors:\n${errorMsg}\n\nRaw keys: ${Object.keys(raw as Record<string, unknown>).join(', ')}`
       ).catch(() => {});
 
-      // Use raw output as fallback — Claude's tool_use schema enforcement should catch most issues
       return raw as SpecialistAnalysis;
     }
 

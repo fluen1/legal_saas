@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe/client';
 import { STRIPE_PRICES } from '@/lib/stripe/config';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createLogger } from '@/lib/logger';
 
 interface CheckoutRequestBody {
   healthCheckId: string;
@@ -10,11 +11,13 @@ interface CheckoutRequestBody {
   cancelUrl: string;
 }
 
+const log = createLogger('Stripe');
+
 export async function POST(request: NextRequest) {
   try {
     // Validate required env vars
     if (!process.env.STRIPE_SECRET_KEY) {
-      console.error('[Stripe] STRIPE_SECRET_KEY is not set');
+      log.error('STRIPE_SECRET_KEY is not set');
       return NextResponse.json({ error: 'Betalingssystem ikke konfigureret' }, { status: 503 });
     }
 
@@ -27,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     const priceId = tier === 'premium' ? STRIPE_PRICES.premium_report : STRIPE_PRICES.full_report;
     if (!priceId) {
-      console.error(`[Stripe] Missing price ID for tier "${tier}". STRIPE_PRICE_FULL_REPORT=${process.env.STRIPE_PRICE_FULL_REPORT ? 'set' : 'MISSING'}, STRIPE_PRICE_PREMIUM_REPORT=${process.env.STRIPE_PRICE_PREMIUM_REPORT ? 'set' : 'MISSING'}`);
+      log.error(`Missing price ID for tier "${tier}". STRIPE_PRICE_FULL_REPORT=${process.env.STRIPE_PRICE_FULL_REPORT ? 'set' : 'MISSING'}, STRIPE_PRICE_PREMIUM_REPORT=${process.env.STRIPE_PRICE_PREMIUM_REPORT ? 'set' : 'MISSING'}`);
       return NextResponse.json({ error: 'Pris ikke konfigureret for denne pakke' }, { status: 503 });
     }
 
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (fetchError || !check) {
-      console.error('[Stripe] Health check not found:', fetchError);
+      log.error('Health check not found:', fetchError);
       return NextResponse.json({ error: 'Helbredstjek ikke fundet' }, { status: 404 });
     }
 
@@ -64,7 +67,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ checkoutUrl: session.url });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[Stripe] Checkout error:', message, error);
+    log.error('Checkout error:', message, error);
     return NextResponse.json(
       { error: 'Kunne ikke oprette betaling', detail: message },
       { status: 500 }
