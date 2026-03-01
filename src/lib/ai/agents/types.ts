@@ -63,6 +63,24 @@ export interface ActionItem {
   lawReferences: LawReference[];
 }
 
+/** Slim orchestrator output: only scoring + prioritized action plan */
+export interface OrchestratorScoring {
+  overallScore: number;
+  scoreLevel: "red" | "yellow" | "green";
+  scoreSummary: string;
+  areaScores: { area: string; score: number; status: "critical" | "warning" | "ok" }[];
+  actionPlan: {
+    priority: number;
+    title: string;
+    description: string;
+    area: string;
+    riskLevel: "critical" | "important" | "recommended";
+    timeEstimate: string;
+    deadline: string;
+  }[];
+}
+
+/** Full report: specialist areas merged with orchestrator scoring */
 export interface OrchestratorOutput {
   overallScore: number;
   scoreLevel: "red" | "yellow" | "green";

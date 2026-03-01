@@ -40,7 +40,31 @@ export const SpecialistAnalysisSchema = z.object({
   summary: z.string(),
 });
 
-// ─── Orchestrator output ───
+// ─── Orchestrator scoring (slim output) ───
+
+export const OrchestratorActionItemSchema = z.object({
+  priority: z.number(),
+  title: z.string(),
+  description: z.string(),
+  area: z.string(),
+  riskLevel: z.enum(['critical', 'important', 'recommended']),
+  timeEstimate: z.string(),
+  deadline: z.string(),
+});
+
+export const OrchestratorScoringSchema = z.object({
+  overallScore: z.number().min(0).max(100),
+  scoreLevel: z.enum(['red', 'yellow', 'green']),
+  scoreSummary: z.string(),
+  areaScores: z.array(z.object({
+    area: z.string(),
+    score: z.number().min(0).max(100),
+    status: z.enum(['critical', 'warning', 'ok']),
+  })),
+  actionPlan: z.array(OrchestratorActionItemSchema),
+});
+
+// ─── Full merged output (used by verifier + downstream) ───
 
 export const ActionItemSchema = z.object({
   priority: z.number(),

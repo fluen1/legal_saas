@@ -8,7 +8,7 @@ import { runSpecialistAgent } from "./agents/specialist";
 import { runOrchestrator } from "./agents/orchestrator";
 import { runVerifier } from "./agents/verifier";
 import { AREA_CONFIGS } from "./agents/config";
-import type { SpecialistAnalysis, VerifiedReport } from "./agents/types";
+import type { OrchestratorOutput, OrchestratorScoring, SpecialistAnalysis, VerifiedReport } from "./agents/types";
 import type { WizardAnswers } from "@/types/wizard";
 import { createLogger } from "@/lib/logger";
 
@@ -119,9 +119,12 @@ export async function runHealthCheckPipeline(
 
   await onStatus?.("orchestrating", "Samler din rapport...");
   const orchStart = Date.now();
-  const report = await runOrchestrator(analyses, profile, wizardAnswers);
+  const scoring = await runOrchestrator(analyses, profile, wizardAnswers);
   timings.orchestrator = (Date.now() - orchStart) / 1000;
   log.info(`Orchestrator done in ${timings.orchestrator.toFixed(1)}s (${Math.round(remaining() / 1000)}s remaining)`);
+
+  // Merge specialist areas with orchestrator scoring
+  const report = mergeReport(analyses, scoring);
 
   // ─── Step 4: Verifier (optional) ───
   const SKIP_VERIFIER = process.env.SKIP_VERIFIER === "true";
@@ -200,4 +203,31 @@ function buildPartialReport(
     ],
     _timings: timings,
   } as VerifiedReport;
+}
+
+/** Merge specialist areas (full data) with orchestrator scoring (slim) into final report */
+function mergeReport(
+  analyses: SpecialistAnalysis[],
+  scoring: OrchestratorScoring
+): OrchestratorOutput {
+  const scoreMap = new Map(scoring.areaScores.map((s) => [s.area, s]));
+
+  return {
+    overallScore: scoring.overallScore,
+    scoreLevel: scoring.scoreLevel,
+    scoreSummary: scoring.scoreSummary,
+    areas: analyses.map((a) => {
+      const areaScore = scoreMap.get(a.area);
+      return {
+        ...a,
+        score: areaScore?.score ?? a.score,
+        status: areaScore?.status ?? a.status,
+      };
+    }),
+    actionPlan: scoring.actionPlan.map((item, i) => ({
+      ...item,
+      priority: item.priority ?? i + 1,
+      lawReferences: [],
+    })),
+  };
 }
