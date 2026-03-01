@@ -8,18 +8,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Send, Loader2, CheckCircle2 } from 'lucide-react';
 
 interface WizardSummaryProps {
   answers: WizardAnswers;
   onBack: () => void;
-  onSubmit: (email: string) => void;
+  onSubmit: (email: string, consentedAt: string) => void;
   submitting: boolean;
   error: string;
 }
 
 export function WizardSummary({ answers, onBack, onSubmit, submitting, error }: WizardSummaryProps) {
   const [email, setEmail] = useState('');
+  const [consent, setConsent] = useState(false);
 
   function getAnswerLabel(questionId: string, value: unknown): string {
     const question = WIZARD_QUESTIONS.find((q) => q.id === questionId);
@@ -93,6 +95,22 @@ export function WizardSummary({ answers, onBack, onSubmit, submitting, error }: 
                 required
               />
             </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="consent"
+                data-testid="summary-consent"
+                checked={consent}
+                onCheckedChange={(checked) => setConsent(checked === true)}
+                className="mt-0.5"
+              />
+              <Label htmlFor="consent" className="text-sm font-normal leading-snug text-muted-foreground">
+                Jeg accepterer at mine svar behandles til at generere en juridisk rapport.
+                Læs vores{' '}
+                <a href="/privatlivspolitik" target="_blank" className="underline hover:text-foreground">
+                  privatlivspolitik
+                </a>.
+              </Label>
+            </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
           </div>
         </CardContent>
@@ -105,8 +123,8 @@ export function WizardSummary({ answers, onBack, onSubmit, submitting, error }: 
         </Button>
         <Button
           data-testid="wizard-submit"
-          onClick={() => onSubmit(email)}
-          disabled={!email || submitting}
+          onClick={() => onSubmit(email, new Date().toISOString())}
+          disabled={!email || !consent || submitting}
           className="gap-2"
         >
           {submitting ? (

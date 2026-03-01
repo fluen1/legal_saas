@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { generateReportPDF } from '@/lib/pdf/generate-report-pdf';
 import type { HealthCheckReport } from '@/types/report';
 
@@ -17,7 +18,7 @@ export async function GET(
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('health_checks')
-      .select('report, payment_status')
+      .select('report, payment_status, email')
       .eq('id', id)
       .single();
 
@@ -28,6 +29,16 @@ export async function GET(
     if (data.payment_status !== 'paid') {
       return NextResponse.json(
         { error: 'Betaling påkrævet for at downloade PDF' },
+        { status: 403 },
+      );
+    }
+
+    // Ownership verification: match logged-in user email to health check email
+    const userSupabase = await createServerSupabaseClient();
+    const { data: { user } } = await userSupabase.auth.getUser();
+    if (!user?.email || user.email.toLowerCase() !== data.email?.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Adgang nægtet' },
         { status: 403 },
       );
     }

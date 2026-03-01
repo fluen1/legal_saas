@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 
 function getSecret(): string {
   const secret = process.env.APP_SECRET;
@@ -12,7 +12,8 @@ export function generateUnsubscribeToken(email: string): string {
 
 export function verifyUnsubscribeToken(email: string, token: string): boolean {
   const expected = generateUnsubscribeToken(email);
-  return expected === token;
+  if (expected.length !== token.length) return false;
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(token));
 }
 
 export function buildUnsubscribeUrl(email: string): string {

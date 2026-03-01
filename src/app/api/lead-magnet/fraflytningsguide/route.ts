@@ -3,10 +3,14 @@ import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { buildFraflytningsguide } from '@/lib/documents/fraflytningsguide';
 import { validateEmail } from '@/lib/utils/helpers';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, name } = await request.json();
+    const limited = rateLimit(request, { maxRequests: 5, windowMs: 60_000, prefix: 'lm-flytte' });
+    if (limited) return limited;
+
+    const { email, name, consentedAt } = await request.json();
 
     if (!email || !validateEmail(email)) {
       return NextResponse.json({ error: 'Ugyldig email-adresse' }, { status: 400 });
@@ -18,6 +22,7 @@ export async function POST(request: NextRequest) {
       email,
       name: name || null,
       resource: 'fraflytningsguide',
+      ...(consentedAt && { consented_at: consentedAt }),
     });
 
     const docxBuffer = await buildFraflytningsguide();

@@ -10,6 +10,7 @@ interface LeadMagnetFormProps {
 export function LeadMagnetForm({ resource, buttonText = 'Download gratis' }: LeadMagnetFormProps) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -22,7 +23,7 @@ export function LeadMagnetForm({ resource, buttonText = 'Download gratis' }: Lea
       const res = await fetch(`/api/lead-magnet/${resource}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name }),
+        body: JSON.stringify({ email, name, consentedAt: new Date().toISOString() }),
       });
 
       if (!res.ok) {
@@ -81,13 +82,31 @@ export function LeadMagnetForm({ resource, buttonText = 'Download gratis' }: Lea
         />
       </div>
 
+      <div className="flex items-start gap-2">
+        <input
+          id="lm-consent"
+          type="checkbox"
+          checked={consent}
+          onChange={(e) => setConsent(e.target.checked)}
+          className="mt-1 size-4 rounded border-surface-border text-deep-blue focus:ring-deep-blue"
+          required
+        />
+        <label htmlFor="lm-consent" className="text-xs leading-snug text-text-secondary">
+          Jeg accepterer at min email bruges til at sende ressourcen og relaterede tips.
+          Læs vores{' '}
+          <a href="/privatlivspolitik" target="_blank" className="underline hover:text-text-primary">
+            privatlivspolitik
+          </a>.
+        </label>
+      </div>
+
       {status === 'error' && (
         <p className="text-sm text-red-600">{errorMsg}</p>
       )}
 
       <button
         type="submit"
-        disabled={status === 'loading'}
+        disabled={status === 'loading' || !consent}
         className="w-full rounded-lg bg-deep-blue px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-deep-blue/90 disabled:opacity-50"
       >
         {status === 'loading' ? 'Sender...' : buttonText}

@@ -3,10 +3,14 @@ import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { buildGDPRTjekliste } from '@/lib/documents/gdpr-tjekliste';
 import { validateEmail } from '@/lib/utils/helpers';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, name } = await request.json();
+    const limited = rateLimit(request, { maxRequests: 5, windowMs: 60_000, prefix: 'lm-gdpr' });
+    if (limited) return limited;
+
+    const { email, name, consentedAt } = await request.json();
 
     if (!email || !validateEmail(email)) {
       return NextResponse.json({ error: 'Ugyldig email-adresse' }, { status: 400 });
@@ -14,11 +18,12 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient();
 
-    // Save lead
+    // Save lead with consent timestamp
     await supabase.from('lead_magnets').insert({
       email,
       name: name || null,
       resource: 'gdpr-tjekliste',
+      ...(consentedAt && { consented_at: consentedAt }),
     });
 
     // Generate DOCX

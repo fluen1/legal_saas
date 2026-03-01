@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { buildFraflytningsguide } from "@/lib/documents/fraflytningsguide";
+import { rateLimit } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const limited = rateLimit(request, { maxRequests: 10, windowMs: 60_000, prefix: 'res-flytte' });
+    if (limited) return limited;
     const buffer = await buildFraflytningsguide();
 
     return new NextResponse(new Uint8Array(buffer), {

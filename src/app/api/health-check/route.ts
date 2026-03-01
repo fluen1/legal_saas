@@ -15,6 +15,7 @@ import { mapVerifiedReportToHealthCheck } from '@/lib/ai/map-verified-to-report'
 import { WizardAnswers } from '@/types/wizard';
 import type { HealthCheckReport } from '@/types/report';
 import { WizardAnswersSchema } from '@/lib/validation/wizard-answers';
+import { rateLimit } from '@/lib/rate-limit';
 
 const USE_MULTI_AGENT = process.env.USE_MULTI_AGENT_PIPELINE === 'true';
 
@@ -23,6 +24,7 @@ interface HealthCheckRequestBody {
   email: string;
   tier: 'free' | 'full';
   healthCheckId?: string;
+  consentedAt?: string;
 }
 
 /**
@@ -177,8 +179,11 @@ async function runPipelineBackground(
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimit(request, { maxRequests: 5, windowMs: 60_000, prefix: 'health-check' });
+    if (limited) return limited;
+
     const body: HealthCheckRequestBody = await request.json();
-    const { answers, email, tier, healthCheckId } = body;
+    const { answers, email, tier, healthCheckId, consentedAt } = body;
 
     if (!answers || !email) {
       return NextResponse.json({ error: 'Svar og email er påkrævet' }, { status: 400 });
@@ -227,6 +232,7 @@ export async function POST(request: NextRequest) {
           status: 'processing' as const,
           payment_status: 'free' as const,
           tier,
+          ...(consentedAt && { consented_at: consentedAt }),
         })
         .select('id')
         .single();

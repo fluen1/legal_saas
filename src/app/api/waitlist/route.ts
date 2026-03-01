@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendWelcomeEmail } from '@/lib/email/resend';
 import { validateEmail } from '@/lib/utils/helpers';
+import { rateLimit } from '@/lib/rate-limit';
 
 interface WaitlistRequestBody {
   email: string;
@@ -10,6 +11,9 @@ interface WaitlistRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimit(request, { maxRequests: 5, windowMs: 60_000, prefix: 'waitlist' });
+    if (limited) return limited;
+
     const body: WaitlistRequestBody = await request.json();
     const { email, source } = body;
 

@@ -91,7 +91,7 @@ export function WizardShell({ initialStep = 0 }: WizardShellProps) {
     }
   }
 
-  async function handleSubmit(email: string) {
+  async function handleSubmit(email: string, consentedAt: string) {
     setSubmitting(true);
     setError('');
 
@@ -99,7 +99,7 @@ export function WizardShell({ initialStep = 0 }: WizardShellProps) {
       const res = await fetch('/api/health-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers, email, tier: 'free' }),
+        body: JSON.stringify({ answers, email, tier: 'free', consentedAt }),
       });
 
       if (!res.ok) {

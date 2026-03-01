@@ -22,6 +22,7 @@ interface FreeReport {
   scoreExplanation: string;
   areas: Array<{ name: string; score: ScoreLevel; status: string; issueCount: number }>;
   totalIssues: number;
+  freeAreaLimit?: number;
 }
 
 const IS_TEST_MODE =
@@ -81,19 +82,10 @@ function ResultatContent() {
         setIsPaid(true);
       }
 
-      if (data.tier === 'free' && !bypassPaywall) {
-        const fullReport = data.report as unknown as HealthCheckReport;
-        setFreeReport({
-          overallScore: fullReport.overallScore,
-          scoreExplanation: fullReport.scoreExplanation,
-          areas: fullReport.areas.map((a) => ({
-            name: a.name,
-            score: a.score,
-            status: a.status,
-            issueCount: a.issues.length,
-          })),
-          totalIssues: fullReport.areas.reduce((sum, a) => sum + a.issues.length, 0),
-        });
+      if (data.payment_status !== 'paid' && !bypassPaywall) {
+        // Server already strips detailed data for unpaid reports
+        const stripped = data.report as unknown as FreeReport;
+        setFreeReport(stripped);
       } else {
         setReport(data.report as unknown as HealthCheckReport);
       }
@@ -210,7 +202,7 @@ function ResultatContent() {
 
           {/* Visible free areas */}
           <div className="mt-8 space-y-4">
-            {freeReport.areas.slice(0, 2).map((area, i) => (
+            {freeReport.areas.slice(0, freeReport.freeAreaLimit ?? 2).map((area, i) => (
               <div
                 key={i}
                 className="flex items-center justify-between rounded-xl border border-surface-border bg-white px-5 py-4 shadow-sm"

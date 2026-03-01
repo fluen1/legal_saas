@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { buildGDPRTjekliste } from "@/lib/documents/gdpr-tjekliste";
+import { rateLimit } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const limited = rateLimit(request, { maxRequests: 10, windowMs: 60_000, prefix: 'res-gdpr' });
+    if (limited) return limited;
     const buffer = await buildGDPRTjekliste();
 
     return new NextResponse(new Uint8Array(buffer), {
