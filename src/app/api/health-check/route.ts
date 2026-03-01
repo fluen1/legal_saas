@@ -98,6 +98,9 @@ async function runPipelineBackground(
       }
 
       report = mapVerifiedReportToHealthCheck(verified);
+      // Include pipeline timings for diagnostics
+      const timings = (verified as unknown as Record<string, unknown>)._timings;
+      if (timings) (report as unknown as Record<string, unknown>)._timings = timings;
     } else {
       await updateHealthCheck(supabase, checkId, {
         analysis_status: 'analyzing',

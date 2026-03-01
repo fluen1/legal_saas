@@ -26,8 +26,8 @@ export interface PipelineTimings {
 
 const PIPELINE_TIMEOUT_MS = parseInt(process.env.PIPELINE_TIMEOUT_MS ?? "280000", 10);
 const GRACEFUL_MARGIN_MS = 30_000; // Stop starting new steps 30s before deadline
-const SPECIALIST_TIMEOUT_MS = 120_000; // 120s per specialist
-const STAGGER_MS = 2_000; // 2s between specialists in same batch
+const SPECIALIST_TIMEOUT_MS = 180_000; // 180s per specialist (3 tool rounds × ~50s each)
+const STAGGER_MS = 3_000; // 3s between specialists to avoid 429 rate limits
 
 /** Race a promise against a timeout. Cleans up timer on resolution. */
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -68,7 +68,7 @@ export async function runHealthCheckPipeline(
   timings.profile = (Date.now() - profileStart) / 1000;
   log.info(`Profile done in ${timings.profile.toFixed(1)}s (${Math.round(remaining() / 1000)}s remaining)`);
 
-  // ─── Step 2: Specialists in 2 batches (3+2) with rate-limit protection ───
+  // ─── Step 2: Parallel specialists with stagger + per-specialist timeout ───
   const stepNames = [
     "Gennemgår GDPR & Persondata...",
     "Gennemgår Ansættelsesret...",
@@ -100,33 +100,21 @@ export async function runHealthCheckPipeline(
     }
   };
 
-  // Batch 1: first 3 specialists with 2000ms stagger
-  log.info(`Batch 1: starting 3 specialists (stagger: ${STAGGER_MS}ms)`);
-  const batch1 = AREA_CONFIGS.slice(0, 3).map((config, i) =>
+  // All specialists in parallel with stagger to avoid 429 rate limits
+  log.info(`Starting ${AREA_CONFIGS.length} specialists in parallel (stagger: ${STAGGER_MS}ms)`);
+  const specialistPromises = AREA_CONFIGS.map((config, i) =>
     delay(i * STAGGER_MS).then(() => runOne(config, i))
   );
+
+  // Race against soft deadline so we keep whatever finishes in time
   const softDeadlineMs = Math.max(remaining() - GRACEFUL_MARGIN_MS - 60_000, 60_000);
-  await Promise.race([
-    Promise.all(batch1).then(() => "done" as const),
+  const raceResult = await Promise.race([
+    Promise.all(specialistPromises).then(() => "done" as const),
     delay(softDeadlineMs).then(() => "timeout" as const),
   ]);
 
-  // Batch 2: remaining 2 specialists (if time permits)
-  if (hasTime()) {
-    log.info(`Batch 2: starting 2 specialists (stagger: ${STAGGER_MS}ms)`);
-    const batch2 = AREA_CONFIGS.slice(3).map((config, i) =>
-      delay(i * STAGGER_MS).then(() => runOne(config, i + 3))
-    );
-    const batch2SoftMs = Math.max(remaining() - GRACEFUL_MARGIN_MS - 60_000, 60_000);
-    const batch2Result = await Promise.race([
-      Promise.all(batch2).then(() => "done" as const),
-      delay(batch2SoftMs).then(() => "timeout" as const),
-    ]);
-    if (batch2Result === "timeout") {
-      log.warn(`Batch 2 hit soft deadline after ${Math.round(batch2SoftMs / 1000)}s`);
-    }
-  } else {
-    log.warn("Skipping batch 2 — insufficient time remaining");
+  if (raceResult === "timeout") {
+    log.warn(`Specialist phase hit soft deadline after ${Math.round(softDeadlineMs / 1000)}s`);
   }
 
   // Collect whatever specialists completed
