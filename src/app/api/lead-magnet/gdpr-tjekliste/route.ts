@@ -5,7 +5,8 @@ import { buildGDPRTjekliste } from '@/lib/documents/gdpr-tjekliste';
 import { validateEmail } from '@/lib/utils/helpers';
 import { rateLimit } from '@/lib/rate-limit';
 import { EMAILS } from '@/config/constants';
-import { createLogger } from '@/lib/logger';
+import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe';
+import { createLogger, requireEnv } from '@/lib/logger';
 
 const log = createLogger('Lead Magnet');
 
@@ -34,12 +35,17 @@ export async function POST(request: NextRequest) {
     const docxBuffer = await buildGDPRTjekliste();
 
     // Send email with attachment
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = new Resend(requireEnv('RESEND_API_KEY'));
+    const unsubUrl = buildUnsubscribeUrl(email);
     const { error: sendError } = await resend.emails.send({
       from: EMAILS.from,
       replyTo: EMAILS.contact,
       to: email,
       subject: 'Din GDPR Tjekliste — Retsklar',
+      headers: {
+        'List-Unsubscribe': `<${unsubUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
       html: `
         <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
           <div style="background-color:#1E3A5F;padding:24px 32px;text-align:center">

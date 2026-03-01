@@ -4,7 +4,7 @@ import { WelcomeEmail } from './templates/welcome-email';
 import { PurchaseEmail } from './templates/purchase-email';
 import { buildUnsubscribeUrl } from './unsubscribe';
 import { EMAILS } from '@/config/constants';
-import { createLogger } from '@/lib/logger';
+import { createLogger, requireEnv } from '@/lib/logger';
 
 const VERIFIED_FROM = EMAILS.from;
 const FALLBACK_FROM = EMAILS.fallbackFrom;
@@ -14,7 +14,7 @@ let _resend: Resend | null = null;
 
 function getResend() {
   if (!_resend) {
-    _resend = new Resend(process.env.RESEND_API_KEY);
+    _resend = new Resend(requireEnv('RESEND_API_KEY'));
   }
   return _resend;
 }
@@ -24,6 +24,14 @@ function getAppUrl() {
 }
 
 const log = createLogger('Email');
+
+function unsubscribeHeaders(email: string): Record<string, string> {
+  const url = buildUnsubscribeUrl(email);
+  return {
+    'List-Unsubscribe': `<${url}>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+  };
+}
 
 async function safeSend(params: Parameters<Resend['emails']['send']>[0]) {
   try {
@@ -85,6 +93,7 @@ export async function sendWelcomeReportEmail({
     to,
     subject: 'Din Retsklar-rapport er klar',
     html,
+    headers: unsubscribeHeaders(to),
   });
 }
 
@@ -119,6 +128,7 @@ export async function sendPurchaseEmail({
     to,
     subject: 'Din fulde rapport er klar — Retsklar',
     html,
+    headers: unsubscribeHeaders(to),
   });
 }
 
@@ -130,6 +140,7 @@ export async function sendWelcomeEmail(email: string) {
     replyTo: REPLY_TO,
     to: email,
     subject: 'Velkommen til Retsklar',
+    headers: unsubscribeHeaders(email),
     html: `
       <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
         <div style="background-color:#1E3A5F;padding:24px 32px;text-align:center">

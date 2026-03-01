@@ -1,9 +1,8 @@
 import { createHmac, timingSafeEqual } from 'crypto';
+import { requireEnv } from '@/lib/logger';
 
 function getSecret(): string {
-  const secret = process.env.APP_SECRET;
-  if (!secret) throw new Error('APP_SECRET environment variable is required');
-  return secret;
+  return requireEnv('APP_SECRET');
 }
 
 export function generateUnsubscribeToken(email: string): string {

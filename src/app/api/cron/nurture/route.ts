@@ -7,7 +7,8 @@ import {
   FROM,
   REPLY_TO,
 } from '@/lib/email/nurture/send-nurture';
-import { createLogger } from '@/lib/logger';
+import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe';
+import { createLogger, requireEnv } from '@/lib/logger';
 
 const log = createLogger('Nurture Cron');
 const BATCH_SIZE = 50;
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = new Resend(requireEnv('RESEND_API_KEY'));
 
   // 1. Fetch due nurture emails (left join: lead magnet rows have no health_check_id)
   const { data: dueEmails, error: fetchError } = await supabase
@@ -112,12 +113,17 @@ export async function GET(request: NextRequest) {
       }
 
       // Send
+      const unsubUrl = buildUnsubscribeUrl(record.email);
       const sendResult = await resend.emails.send({
         from: FROM,
         replyTo: REPLY_TO,
         to: record.email,
         subject: result.subject,
         html: result.html,
+        headers: {
+          'List-Unsubscribe': `<${unsubUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
       });
 
       if (sendResult.error) {

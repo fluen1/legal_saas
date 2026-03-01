@@ -1,12 +1,12 @@
 import { Resend } from 'resend';
 import { EMAILS } from '@/config/constants';
-import { createLogger } from '@/lib/logger';
+import { createLogger, requireEnv } from '@/lib/logger';
 
 let _resend: Resend | null = null;
 
 function getResend() {
   if (!_resend) {
-    _resend = new Resend(process.env.RESEND_API_KEY);
+    _resend = new Resend(requireEnv('RESEND_API_KEY'));
   }
   return _resend;
 }
