@@ -45,7 +45,6 @@ export const WIZARD_QUESTIONS: Question[] = [
       { value: 'sole_proprietorship', label: 'Enkeltmandsvirksomhed' },
       { value: 'aps', label: 'ApS (Anpartsselskab)' },
       { value: 'as', label: 'A/S (Aktieselskab)' },
-      { value: 'ivs', label: 'IVS (Iværksætterselskab)' },
       { value: 'is', label: 'I/S (Interessentskab)' },
       { value: 'holding', label: 'Holdingselskab' },
       { value: 'other', label: 'Anden' },
@@ -271,7 +270,7 @@ export const WIZARD_QUESTIONS: Question[] = [
     label: 'Er jeres vedtægter opdaterede?',
     type: 'single_choice',
     required: true,
-    showIf: { questionId: 'company_type', value: ['aps', 'as', 'ivs', 'holding'] },
+    showIf: { questionId: 'company_type', value: ['aps', 'as', 'holding'] },
     options: [
       { value: 'yes', label: 'Ja, opdateret inden for de seneste 2 år' },
       { value: 'no', label: 'Nej / ved ikke' },
@@ -283,7 +282,7 @@ export const WIZARD_QUESTIONS: Question[] = [
     label: 'Indleverer I årsrapport til Erhvervsstyrelsen til tiden?',
     type: 'single_choice',
     required: true,
-    showIf: { questionId: 'company_type', value: ['aps', 'as', 'ivs', 'holding'] },
+    showIf: { questionId: 'company_type', value: ['aps', 'as', 'holding'] },
     options: [
       { value: 'yes', label: 'Ja, altid' },
       { value: 'sometimes_late', label: 'Nogle gange forsinket' },
@@ -296,7 +295,7 @@ export const WIZARD_QUESTIONS: Question[] = [
     label: 'Afholder I ordinær generalforsamling hvert år?',
     type: 'single_choice',
     required: true,
-    showIf: { questionId: 'company_type', value: ['aps', 'as', 'ivs', 'holding'] },
+    showIf: { questionId: 'company_type', value: ['aps', 'as', 'holding'] },
     options: [
       { value: 'yes', label: 'Ja' },
       { value: 'no', label: 'Nej' },
@@ -309,7 +308,7 @@ export const WIZARD_QUESTIONS: Question[] = [
     label: 'Er jeres ejerbog og registrering hos Erhvervsstyrelsen ajourført?',
     type: 'single_choice',
     required: true,
-    showIf: { questionId: 'company_type', value: ['aps', 'as', 'ivs', 'holding'] },
+    showIf: { questionId: 'company_type', value: ['aps', 'as', 'holding'] },
     options: [
       { value: 'yes', label: 'Ja' },
       { value: 'no', label: 'Nej' },

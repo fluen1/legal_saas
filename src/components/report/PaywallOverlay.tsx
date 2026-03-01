@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Lock, Loader2, CheckCircle2 } from 'lucide-react';
+import { PRICES } from '@/config/constants';
 
 interface PaywallOverlayProps {
   healthCheckId: string;
@@ -106,7 +107,7 @@ export function PaywallOverlay({ healthCheckId }: PaywallOverlayProps) {
               {loading ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
-                'Fuld Rapport — 499 kr'
+                `Fuld Rapport — ${PRICES.full.label}`
               )}
             </Button>
             {error && (

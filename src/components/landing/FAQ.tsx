@@ -4,6 +4,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { PRICES, WIZARD } from '@/config/constants';
 
 const FAQS = [
   {
@@ -20,11 +21,11 @@ const FAQS = [
   },
   {
     q: 'Hvad koster det?',
-    a: 'Du kan starte helt gratis med en mini-scan. Den fulde rapport koster 499 kr som engangsbetaling, og premium med personlig rådgivning koster 1.499 kr.',
+    a: `Du kan starte helt gratis med en mini-scan. Den fulde rapport koster ${PRICES.full.label} som engangsbetaling, og premium med personlig rådgivning koster ${PRICES.premium.label}.`,
   },
   {
     q: 'Hvor lang tid tager det?',
-    a: 'Det tager typisk 5 minutter at besvare spørgsmålene. Herefter analyserer vores AI dine svar, og du modtager din rapport inden for få sekunder.',
+    a: `Det tager typisk ${WIZARD.completionMinutes} minutter at besvare spørgsmålene. Herefter analyserer vores AI dine svar, og du modtager din rapport inden for få sekunder.`,
   },
   {
     q: 'Er mine data sikre?',

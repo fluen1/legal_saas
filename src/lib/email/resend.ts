@@ -3,10 +3,11 @@ import { render } from '@react-email/components';
 import { WelcomeEmail } from './templates/welcome-email';
 import { PurchaseEmail } from './templates/purchase-email';
 import { buildUnsubscribeUrl } from './unsubscribe';
+import { EMAILS } from '@/config/constants';
 
-const VERIFIED_FROM = 'Retsklar <noreply@send.retsklar.dk>';
-const FALLBACK_FROM = 'Retsklar <onboarding@resend.dev>';
-const REPLY_TO = 'kontakt@retsklar.dk';
+const VERIFIED_FROM = EMAILS.from;
+const FALLBACK_FROM = EMAILS.fallbackFrom;
+const REPLY_TO = EMAILS.contact;
 
 let _resend: Resend | null = null;
 

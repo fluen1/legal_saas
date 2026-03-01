@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { EMAILS } from '@/config/constants';
 
 let _resend: Resend | null = null;
 
@@ -9,8 +10,8 @@ function getResend() {
   return _resend;
 }
 
-const FROM = 'Retsklar Alerts <noreply@send.retsklar.dk>';
-const FALLBACK_FROM = 'Retsklar Alerts <onboarding@resend.dev>';
+const FROM = `Retsklar Alerts <${EMAILS.noreply}>`;
+const FALLBACK_FROM = EMAILS.fallbackFrom;
 
 export async function sendAdminAlert(subject: string, body: string) {
   const adminEmail = process.env.ADMIN_EMAIL;

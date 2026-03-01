@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { buildEjeraftale } from '@/lib/documents/ejeraftale';
 import { validateEmail } from '@/lib/utils/helpers';
 import { rateLimit } from '@/lib/rate-limit';
+import { EMAILS } from '@/config/constants';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,8 +30,8 @@ export async function POST(request: NextRequest) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { error: sendError } = await resend.emails.send({
-      from: 'Retsklar <noreply@send.retsklar.dk>',
-      replyTo: 'kontakt@retsklar.dk',
+      from: EMAILS.from,
+      replyTo: EMAILS.contact,
       to: email,
       subject: 'Din Ejeraftale Skabelon — Retsklar',
       html: `

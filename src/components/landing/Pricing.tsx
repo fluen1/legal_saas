@@ -2,13 +2,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check } from 'lucide-react';
+import { PRICES, WIZARD } from '@/config/constants';
 
 const PLANS = [
   {
     name: 'Gratis Mini-Scan',
     price: '0 kr',
     period: '',
-    description: '5 spørgsmål — overordnet score',
+    description: `${WIZARD.freeQuestions} spørgsmål — overordnet score`,
     features: [
       'Grundlæggende virksomhedsinfo',
       'Overordnet score (rød/gul/grøn)',
@@ -22,11 +23,11 @@ const PLANS = [
   },
   {
     name: 'Fuld Rapport',
-    price: '499 kr',
+    price: PRICES.full.label,
     period: 'engangsbetaling',
     description: 'Komplet juridisk analyse med handlingsplan',
     features: [
-      'Alle 15-20 spørgsmål',
+      `Alle ${WIZARD.displayQuestionCount} spørgsmål`,
       'Detaljeret analyse af alle områder',
       'Konkrete lovhenvisninger',
       'Prioriteret handlingsplan',
@@ -39,12 +40,12 @@ const PLANS = [
   },
   {
     name: 'Premium',
-    price: '1.499 kr',
+    price: PRICES.premium.label,
     period: 'engangsbetaling',
-    description: 'Fuld rapport + 30 min. personlig rådgivning',
+    description: `Fuld rapport + ${WIZARD.consultationMinutes} min. personlig rådgivning`,
     features: [
       'Alt i Fuld Rapport',
-      '30 min. personlig opfølgning',
+      `${WIZARD.consultationMinutes} min. personlig opfølgning`,
       'Gennemgang med juridisk rådgiver',
       'Skræddersyet prioritering',
     ],

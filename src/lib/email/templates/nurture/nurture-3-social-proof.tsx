@@ -8,6 +8,7 @@ import {
   ctaBox,
   listItem,
 } from './nurture-base';
+import { PRICES } from '@/config/constants';
 
 interface Nurture3Props {
   reportUrl: string;
@@ -81,7 +82,7 @@ export function Nurture3SocialProof({ reportUrl, checkoutUrl, unsubscribeUrl }: 
 
       <Section style={ctaBox}>
         <Text style={{ ...paragraph, fontWeight: '600' as const, margin: '0 0 16px' }}>
-          Lås op for din fulde rapport &mdash; 499 kr
+{`Lås op for din fulde rapport — ${PRICES.full.label}`}
         </Text>
         <Button style={secondaryButton} href={checkoutUrl}>
           Se den fulde rapport

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Logo } from './Logo';
+import { COMPANY, EMAILS } from '@/config/constants';
 
 export function Footer() {
   return (
@@ -95,9 +96,11 @@ export function Footer() {
               Kontakt
             </h4>
             <ul className="space-y-2.5 text-sm text-text-secondary">
-              <li>kontakt@retsklar.dk</li>
-              <li>CVR: 42767107</li>
-              <li>C/O Erhvervsstyrelsen<br />Langelinie All&eacute; 17</li>
+              <li>{EMAILS.contact}</li>
+              <li>CVR: {COMPANY.cvr}</li>
+              <li>{COMPANY.address.split(', ').map((part, i) => (
+                <span key={i}>{i > 0 && <br />}{part}</span>
+              ))}</li>
             </ul>
           </div>
         </div>

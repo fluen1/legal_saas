@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ClipboardList, Cpu, FileCheck, ArrowRight } from 'lucide-react';
+import { WIZARD } from '@/config/constants';
 
 const STEPS = [
   {
     icon: ClipboardList,
     number: '1',
-    title: 'Besvar 15 spørgsmål',
+    title: `Besvar ${WIZARD.displayQuestionCount} spørgsmål`,
     description:
       'Om din virksomhed, GDPR, ansættelse, selskab og kontrakter',
   },

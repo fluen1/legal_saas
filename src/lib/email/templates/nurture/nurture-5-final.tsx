@@ -5,6 +5,7 @@ import {
   secondaryButton,
   ctaBox,
 } from './nurture-base';
+import { PRICES } from '@/config/constants';
 
 interface Nurture5Props {
   reportUrl: string;
@@ -67,7 +68,7 @@ export function Nurture5Final({
         </Text>
         <Text style={{ ...paragraph, margin: '0 0 16px', fontSize: '14px' }}>
           Detaljerede lovhenvisninger, prioriteret handlingsplan og PDF-download
-          &mdash; 499 kr.
+{`— ${PRICES.full.label}.`}
         </Text>
         <Button style={secondaryButton} href={checkoutUrl}>
           Se den fulde rapport

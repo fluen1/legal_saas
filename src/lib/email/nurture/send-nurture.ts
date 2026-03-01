@@ -5,9 +5,10 @@ import { Nurture3SocialProof } from '../templates/nurture/nurture-3-social-proof
 import { Nurture4Expertise } from '../templates/nurture/nurture-4-expertise';
 import { Nurture5Final } from '../templates/nurture/nurture-5-final';
 import { buildUnsubscribeUrl } from '../unsubscribe';
+import { EMAILS } from '@/config/constants';
 
-const FROM = 'Philip fra Retsklar <noreply@send.retsklar.dk>';
-const REPLY_TO = 'kontakt@retsklar.dk';
+const FROM = EMAILS.nurtureFrom;
+const REPLY_TO = EMAILS.contact;
 
 function getAppUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';

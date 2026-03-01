@@ -11,6 +11,7 @@ import {
   Section,
   Text,
 } from '@react-email/components';
+import { PRICES } from '@/config/constants';
 
 type ScoreLevel = 'red' | 'yellow' | 'green';
 
@@ -86,7 +87,7 @@ export function WelcomeEmail({
               </Heading>
               <Text style={paragraph}>
                 Lås op for den fulde rapport med detaljerede lovhenvisninger og
-                en konkret handlingsplan for kun <strong>499 kr</strong>.
+                en konkret handlingsplan for kun <strong>{PRICES.full.label}</strong>.
               </Text>
               <Button style={secondaryButton} href={upsellUrl}>
                 Lås op for fuld rapport
