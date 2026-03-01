@@ -107,7 +107,7 @@ export default function DashboardPage() {
   return (
     <>
       <Header />
-      <main className="min-h-[60vh] bg-off-white px-6 py-10 md:px-12">
+      <main id="main-content" className="min-h-[60vh] bg-off-white px-6 py-10 md:px-12">
         <div className="mx-auto max-w-[900px]">
           <div className="flex items-center justify-between">
             <h1 className="font-serif text-2xl text-text-primary md:text-3xl">

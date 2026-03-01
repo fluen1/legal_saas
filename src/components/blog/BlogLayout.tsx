@@ -14,7 +14,7 @@ export function BlogLayout({ post, children }: BlogLayoutProps) {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-3xl px-4 py-12 md:px-6">
+      <main id="main-content" className="mx-auto max-w-3xl px-4 py-12 md:px-6">
         <Link
           href="/blog"
           className="mb-8 inline-flex items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"

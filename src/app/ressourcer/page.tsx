@@ -44,7 +44,7 @@ export default function RessourcerPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-[1200px] px-6 py-16 md:px-12">
+      <main id="main-content" className="mx-auto max-w-[1200px] px-6 py-16 md:px-12">
         <div className="max-w-2xl">
           <h1 className="font-serif text-3xl font-bold text-text-primary md:text-4xl">
             Gratis Juridiske Ressourcer

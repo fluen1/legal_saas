@@ -18,7 +18,7 @@ export default async function StepPage({ params }: Props) {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-gray-50 pb-16">
+      <main id="main-content" className="min-h-screen bg-gray-50 pb-16">
         <WizardStep step={stepIndex} />
       </main>
     </>

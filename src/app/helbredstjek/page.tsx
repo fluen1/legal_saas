@@ -10,7 +10,7 @@ export default function HelbredstjekPage() {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-gray-50 pb-16">
+      <main id="main-content" className="min-h-screen bg-gray-50 pb-16">
         <WizardShell />
       </main>
     </>

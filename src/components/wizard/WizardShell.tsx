@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { WIZARD_STEPS, WIZARD_QUESTIONS } from '@/config/wizard-questions';
 import { WizardAnswers } from '@/types/wizard';
@@ -118,11 +118,19 @@ export function WizardShell({ initialStep = 0 }: WizardShellProps) {
   }
 
   const StepIcon = stepConfig ? iconMap[stepConfig.icon] : null;
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (stepHeadingRef.current) {
+      stepHeadingRef.current.focus();
+    }
+  }, [currentStep, showSummary]);
 
   if (showSummary) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <Progress value={100} className="mb-8" />
+        <Progress value={100} className="mb-8" aria-label="Fremskridt: opsummering" />
+        <h2 ref={stepHeadingRef} tabIndex={-1} className="sr-only">Opsummering</h2>
         <WizardSummary
           answers={answers}
           onBack={handleBack}
@@ -135,25 +143,29 @@ export function WizardShell({ initialStep = 0 }: WizardShellProps) {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-2xl px-4 py-8" role="form" aria-label="Juridisk helbredstjek">
       <div className="mb-2 flex items-center justify-between text-sm text-muted-foreground">
-        <span>
+        <span aria-live="polite">
           Trin {currentStep + 1} af {totalSteps}
         </span>
         <span>{Math.round(progress)}%</span>
       </div>
-      <Progress value={progress} className="mb-8" />
+      <Progress
+        value={progress}
+        className="mb-8"
+        aria-label={`Fremskridt: trin ${currentStep + 1} af ${totalSteps}`}
+      />
 
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
             {StepIcon && (
-              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100" aria-hidden="true">
                 <StepIcon className="size-5 text-blue-600" />
               </div>
             )}
             <div>
-              <CardTitle>{stepConfig?.title}</CardTitle>
+              <CardTitle ref={stepHeadingRef} tabIndex={-1}>{stepConfig?.title}</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">{stepConfig?.description}</p>
             </div>
           </div>
@@ -165,16 +177,16 @@ export function WizardShell({ initialStep = 0 }: WizardShellProps) {
         </CardContent>
       </Card>
 
-      <div className="mt-6 flex justify-between">
+      <nav className="mt-6 flex justify-between" aria-label="Wizard navigation">
         <Button variant="outline" onClick={handleBack} disabled={currentStep === 0} className="gap-2">
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-4" aria-hidden="true" />
           Tilbage
         </Button>
         <Button data-testid="wizard-next" onClick={handleNext} disabled={!isStepComplete()} className="gap-2">
           {currentStep === totalSteps - 1 ? (
             submitting ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                 Analyserer...
               </>
             ) : (
@@ -183,11 +195,11 @@ export function WizardShell({ initialStep = 0 }: WizardShellProps) {
           ) : (
             <>
               Næste
-              <ArrowRight className="size-4" />
+              <ArrowRight className="size-4" aria-hidden="true" />
             </>
           )}
         </Button>
-      </div>
+      </nav>
     </div>
   );
 }

@@ -104,7 +104,7 @@ export default function LandingPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Header />
-      <main>
+      <main id="main-content">
         <Hero />
         <ProblemSection />
         <HowItWorks />
