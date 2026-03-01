@@ -63,13 +63,15 @@ async function doStreamRequest(
       const status = (err as { status?: number })?.status;
       const headers = (err as { headers?: { get?: (n: string) => string } })?.headers;
       const retryAfter = headers?.get?.("retry-after") ?? headers?.get?.("Retry-After");
-      if (status === 429 && attempt < 2) {
+      // Retry on 429 (rate limit) and 529 (overloaded) — both are transient
+      const isRetryable = status === 429 || status === 529;
+      if (isRetryable && attempt < 2) {
         const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : null;
         const exponentialMs = 5000 * Math.pow(2, attempt); // 5s, 10s
         const waitMs = retryAfterMs
           ? Math.max(retryAfterMs, 5000)
           : Math.min(exponentialMs, 30000);
-        log.warn(`${ctx} Rate limit 429 after ${elapsed}s — waiting ${Math.round(waitMs / 1000)}s (attempt ${attempt + 1}/3)`);
+        log.warn(`${ctx} HTTP ${status} after ${elapsed}s — waiting ${Math.round(waitMs / 1000)}s (attempt ${attempt + 1}/3)`);
         await new Promise((r) => setTimeout(r, waitMs));
         continue;
       }

@@ -79,6 +79,7 @@ export async function runHealthCheckPipeline(
 
   const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const specialistResults: (SpecialistAnalysis | null)[] = new Array(AREA_CONFIGS.length).fill(null);
+  const specialistErrors: (string | null)[] = new Array(AREA_CONFIGS.length).fill(null);
 
   /** Run a single specialist with per-specialist timeout */
   const runOne = async (config: typeof AREA_CONFIGS[number], index: number): Promise<void> => {
@@ -96,7 +97,9 @@ export async function runHealthCheckPipeline(
       log.info(`Specialist ${config.name} completed in ${timings.specialists[config.name].toFixed(1)}s`);
     } catch (err) {
       timings.specialists[config.name] = (Date.now() - start) / 1000;
-      log.error(`Specialist ${config.name} failed after ${timings.specialists[config.name].toFixed(1)}s:`, err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      specialistErrors[index] = errMsg;
+      log.error(`Specialist ${config.name} failed after ${timings.specialists[config.name].toFixed(1)}s: ${errMsg}`);
     }
   };
 
@@ -127,7 +130,7 @@ export async function runHealthCheckPipeline(
   }
 
   // If we have partial results, build placeholder analyses for missing areas
-  const analyses = buildCompleteAnalyses(specialistResults, completedAnalyses);
+  const analyses = buildCompleteAnalyses(specialistResults, completedAnalyses, specialistErrors);
 
   // ─── Step 3: Orchestrator ───
   if (!hasTime()) {
@@ -176,12 +179,14 @@ export async function runHealthCheckPipeline(
 /** Fill in missing specialist analyses with placeholder data */
 function buildCompleteAnalyses(
   results: (SpecialistAnalysis | null)[],
-  completed: SpecialistAnalysis[]
+  completed: SpecialistAnalysis[],
+  errors: (string | null)[]
 ): SpecialistAnalysis[] {
   return results.map((result, i) => {
     if (result) return result;
     const config = AREA_CONFIGS[i];
-    log.warn(`Building placeholder for missing specialist: ${config.name}`);
+    const err = errors[i];
+    log.warn(`Building placeholder for missing specialist: ${config.name} (error: ${err ?? "unknown"})`);
     return {
       area: config.id,
       areaName: config.name,
@@ -189,7 +194,7 @@ function buildCompleteAnalyses(
       score: 50,
       issues: [],
       positives: [],
-      summary: `Analysen af ${config.name} nåede ikke at blive fuldført inden deadline. ${completed.length} af ${AREA_CONFIGS.length} områder blev analyseret.`,
+      summary: `Analysen af ${config.name} kunne ikke fuldføres. ${completed.length} af ${AREA_CONFIGS.length} områder blev analyseret.${err ? ` Fejl: ${err}` : ""}`,
     };
   });
 }
