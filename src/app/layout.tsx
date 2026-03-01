@@ -20,11 +20,22 @@ export const metadata: Metadata = {
   title: 'Retsklar — Er din virksomhed juridisk på plads?',
   description:
     'Få et AI-drevet juridisk tjek af din virksomhed. Find mangler inden de koster dig dyrt.',
+  metadataBase: new URL('https://retsklar.dk'),
   openGraph: {
     title: 'Retsklar — Er din virksomhed juridisk på plads?',
     description: 'Få et AI-drevet juridisk tjek af din virksomhed. Find mangler inden de koster dig dyrt.',
     locale: 'da_DK',
     type: 'website',
+    siteName: 'Retsklar',
+    url: 'https://retsklar.dk',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Retsklar — Er din virksomhed juridisk på plads?',
+    description: 'Få et AI-drevet juridisk tjek af din virksomhed. Find mangler inden de koster dig dyrt.',
+  },
+  alternates: {
+    canonical: 'https://retsklar.dk',
   },
 };
 

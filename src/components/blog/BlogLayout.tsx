@@ -38,6 +38,8 @@ export function BlogLayout({ post, children }: BlogLayoutProps) {
               </time>
               <span>&middot;</span>
               <span>{post.readingTime} læsetid</span>
+              <span>&middot;</span>
+              <span>{post.author}</span>
             </div>
 
             <h1 className="mt-4 font-serif text-3xl font-bold leading-tight text-text-primary md:text-4xl">
