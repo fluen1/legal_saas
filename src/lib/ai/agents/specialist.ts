@@ -28,6 +28,8 @@ export async function runSpecialistAgent(
   const TOKEN_BUDGET = 25_000;
   let totalTokens = 0;
 
+  log.info(`Starting specialist agent: ${config.id}`);
+  const agentStart = Date.now();
   const result = await callClaudeWithToolLoop({
     systemPrompt,
     userMessage,
@@ -38,6 +40,7 @@ export async function runSpecialistAgent(
     enableThinking: false,
     maxTokens: 8192,
     useCache: true,
+    requestContext: `specialist:${config.id}`,
     executeTool: async (name, input) => {
       if (name !== "lookup_law") {
         return JSON.stringify({ error: `Ukendt tool: ${name}` });
@@ -79,6 +82,8 @@ export async function runSpecialistAgent(
       });
     },
   });
+
+  log.info(`Specialist ${config.id} API calls completed in ${((Date.now() - agentStart) / 1000).toFixed(1)}s`);
 
   if (result.toolUse?.name === "submit_analysis") {
     const raw = result.toolUse.input;

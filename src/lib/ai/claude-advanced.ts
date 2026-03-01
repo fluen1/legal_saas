@@ -31,6 +31,7 @@ export interface CallClaudeOptions {
   thinkingBudget?: number;
   maxTokens?: number;
   useCache?: boolean;
+  requestContext?: string;
 }
 
 export interface CallClaudeResult {
@@ -44,30 +45,39 @@ export interface CallClaudeResult {
  */
 async function doStreamRequest(
   client: Anthropic,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
+  context?: string
 ): Promise<Anthropic.Messages.Message> {
+  const ctx = context ? `[${context}]` : "";
   for (let attempt = 0; attempt < 3; attempt++) {
+    const callStart = Date.now();
     try {
+      log.info(`${ctx} API call attempt ${attempt + 1}/3`);
       const { stream: _ignored, ...streamParams } = params;
       const stream = client.messages.stream(streamParams as Parameters<typeof client.messages.stream>[0]);
       const response = await stream.finalMessage();
+      log.info(`${ctx} API call completed in ${((Date.now() - callStart) / 1000).toFixed(1)}s`);
       return response;
     } catch (err: unknown) {
+      const elapsed = ((Date.now() - callStart) / 1000).toFixed(1);
       const status = (err as { status?: number })?.status;
       const headers = (err as { headers?: { get?: (n: string) => string } })?.headers;
       const retryAfter = headers?.get?.("retry-after") ?? headers?.get?.("Retry-After");
       if (status === 429 && attempt < 2) {
-        const suggested = retryAfter ? parseInt(retryAfter, 10) * 1000 : 30000;
-        const waitMs = Math.max(suggested, 5000);
-        log.warn(`Rate limit 429 — venter ${Math.round(waitMs / 1000)}s...`);
+        const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : null;
+        const exponentialMs = 5000 * Math.pow(2, attempt); // 5s, 10s
+        const waitMs = retryAfterMs
+          ? Math.max(retryAfterMs, 5000)
+          : Math.min(exponentialMs, 30000);
+        log.warn(`${ctx} Rate limit 429 after ${elapsed}s — waiting ${Math.round(waitMs / 1000)}s (attempt ${attempt + 1}/3)`);
         await new Promise((r) => setTimeout(r, waitMs));
-        log.warn(`Forsøger igen (forsøg ${attempt + 2}/3)...`);
         continue;
       }
+      log.error(`${ctx} API call failed after ${elapsed}s: status=${status ?? "unknown"}`);
       throw err;
     }
   }
-  throw new Error("Max retries exceeded");
+  throw new Error(`${ctx} Max retries exceeded`);
 }
 
 function extractResult(response: Anthropic.Messages.Message): CallClaudeResult {
@@ -119,7 +129,7 @@ export async function callClaudeAdvanced(options: CallClaudeOptions): Promise<Ca
       : {}),
   };
 
-  const response = await doStreamRequest(client, params);
+  const response = await doStreamRequest(client, params, options.requestContext);
   return extractResult(response);
 }
 
@@ -175,7 +185,8 @@ export async function callClaudeWithToolLoop(
   });
 
   for (let round = 0; round < maxRounds; round++) {
-    const response = await doStreamRequest(client, buildParams(messages));
+    log.info(`[${options.requestContext ?? "tool-loop"}] Tool round ${round + 1}/${maxRounds}`);
+    const response = await doStreamRequest(client, buildParams(messages), options.requestContext);
     const content = response.content ?? [];
     const toolUses = content.filter(
       (b) => "type" in b && b.type === "tool_use" && "id" in b && "name" in b && "input" in b
