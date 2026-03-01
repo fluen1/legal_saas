@@ -32,8 +32,7 @@ export async function runOrchestrator(
     userMessage,
     tools: [orchestratorTool],
     toolChoice: { type: "tool", name: "submit_report" },
-    enableThinking: true,
-    thinkingBudget: 1024,
+    enableThinking: false,
     maxTokens: 32000,
     useCache: false,
   });
