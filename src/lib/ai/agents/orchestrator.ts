@@ -24,16 +24,21 @@ export async function runOrchestrator(
     2
   );
 
+  log.info(`Starting orchestrator: input ~${Math.round(userMessage.length / 4)}k tokens`);
+  const start = Date.now();
+
   const result = await callClaudeAdvanced({
     systemPrompt: ORCHESTRATOR_SYSTEM_PROMPT,
     userMessage,
     tools: [orchestratorTool],
     toolChoice: { type: "tool", name: "submit_report" },
     enableThinking: true,
-    thinkingBudget: 5000,
+    thinkingBudget: 1024,
     maxTokens: 32000,
     useCache: false,
   });
+
+  log.info(`Orchestrator completed in ${((Date.now() - start) / 1000).toFixed(1)}s`);
 
   if (result.toolUse?.name === "submit_report") {
     const raw = result.toolUse.input;

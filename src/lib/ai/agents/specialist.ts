@@ -36,7 +36,7 @@ export async function runSpecialistAgent(
     finalToolNames: ["submit_analysis"],
     maxToolRounds: 5,
     enableThinking: true,
-    thinkingBudget: 5000,
+    thinkingBudget: 1024,
     useCache: true,
     executeTool: async (name, input) => {
       if (name !== "lookup_law") {

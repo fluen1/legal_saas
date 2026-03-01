@@ -31,6 +31,14 @@ export async function callClaude({
     messages: [{ role: 'user', content: userPrompt }],
   });
 
+  if (response.stop_reason === 'max_tokens') {
+    console.warn(
+      `[callClaude] Response truncated at max_tokens=${maxTokens}. ` +
+      `Output length: ${response.content.find((b) => b.type === 'text')?.text?.length ?? 0} chars. ` +
+      `Consider increasing maxTokens.`
+    );
+  }
+
   const textBlock = response.content.find((b) => b.type === 'text');
   if (!textBlock || textBlock.type !== 'text') {
     throw new Error('No text response from Claude');
@@ -44,7 +52,7 @@ export async function callClaude({
 export async function fixInvalidJSON(invalidJson: string): Promise<string> {
   const response = await getClient().messages.create({
     model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 4096,
+    max_tokens: 32768,
     temperature: 0,
     system: 'You fix invalid JSON. Return ONLY valid JSON, no explanation, no markdown.',
     messages: [

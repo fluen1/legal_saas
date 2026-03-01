@@ -41,9 +41,8 @@ export async function runVerifier(
     toolChoice: { type: "any" },
     finalToolNames: ["submit_verified_report"],
     maxToolRounds: 8,
-    enableThinking: true,
-    thinkingBudget: 5000,
-    maxTokens: 32000,
+    enableThinking: false,
+    maxTokens: 16384,
     useCache: false,
     executeTool: async (name, input) => {
       if (name !== "lookup_law") {

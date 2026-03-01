@@ -76,10 +76,10 @@ async function runPipelineBackground(
     let report: HealthCheckReport;
 
     if (USE_MULTI_AGENT) {
-      // Wrap pipeline in a 270s timeout (under Vercel's 300s max)
-      const PIPELINE_TIMEOUT_MS = 270_000;
+      // Vercel Pro allows 900s; use env override for local dev
+      const PIPELINE_TIMEOUT_MS = parseInt(process.env.PIPELINE_TIMEOUT_MS ?? '540000', 10);
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Pipeline timeout: analysen tog for lang tid (270s)')), PIPELINE_TIMEOUT_MS)
+        setTimeout(() => reject(new Error(`Pipeline timeout: analysen tog for lang tid (${Math.round(PIPELINE_TIMEOUT_MS / 1000)}s)`)), PIPELINE_TIMEOUT_MS)
       );
 
       const verified = await Promise.race([

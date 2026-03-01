@@ -70,10 +70,23 @@ export async function runHealthCheckPipeline(
   const report = await runOrchestrator(analyses, profile, wizardAnswers);
   timings.orchestrator = (Date.now() - orchStart) / 1000;
 
-  await onStatus?.("verifying", "Verificerer lovhenvisninger...");
-  const verStart = Date.now();
-  const verifiedReport = await runVerifier(report, analyses, wizardAnswers);
-  timings.verifier = (Date.now() - verStart) / 1000;
+  const SKIP_VERIFIER = process.env.SKIP_VERIFIER === 'true';
+  let verifiedReport: VerifiedReport;
+
+  if (SKIP_VERIFIER) {
+    log.info("Verifier skipped (SKIP_VERIFIER=true)");
+    verifiedReport = {
+      report,
+      qualityScore: 70,
+      modifications: [],
+      warnings: ["Verificering springet over for at reducere svartid."],
+    };
+  } else {
+    await onStatus?.("verifying", "Verificerer lovhenvisninger...");
+    const verStart = Date.now();
+    verifiedReport = await runVerifier(report, analyses, wizardAnswers);
+    timings.verifier = (Date.now() - verStart) / 1000;
+  }
 
   timings.total = (Date.now() - totalStart) / 1000;
   await onStatus?.("complete", "Færdig");

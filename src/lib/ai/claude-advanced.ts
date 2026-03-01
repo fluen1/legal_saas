@@ -20,7 +20,7 @@ function getClient() {
 }
 
 const log = createLogger("Claude");
-const MODEL = "claude-opus-4-6";
+const MODEL = "claude-sonnet-4-6";
 
 export interface CallClaudeOptions {
   systemPrompt: string;
@@ -57,8 +57,8 @@ async function doStreamRequest(
       const headers = (err as { headers?: { get?: (n: string) => string } })?.headers;
       const retryAfter = headers?.get?.("retry-after") ?? headers?.get?.("Retry-After");
       if (status === 429 && attempt < 2) {
-        const suggested = retryAfter ? parseInt(retryAfter, 10) * 1000 : 120000;
-        const waitMs = Math.max(suggested, 60000);
+        const suggested = retryAfter ? parseInt(retryAfter, 10) * 1000 : 30000;
+        const waitMs = Math.max(suggested, 5000);
         log.warn(`Rate limit 429 — venter ${Math.round(waitMs / 1000)}s...`);
         await new Promise((r) => setTimeout(r, waitMs));
         log.warn(`Forsøger igen (forsøg ${attempt + 2}/3)...`);
