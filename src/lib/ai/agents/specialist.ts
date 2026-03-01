@@ -36,7 +36,7 @@ export async function runSpecialistAgent(
     tools: [lawLookupTool, specialistTool],
     toolChoice: { type: "any" },
     finalToolNames: ["submit_analysis"],
-    maxToolRounds: 3,
+    maxToolRounds: 5,
     enableThinking: false,
     maxTokens: 8192,
     useCache: true,
