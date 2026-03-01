@@ -1,6 +1,7 @@
 export type HealthCheckStatus = 'draft' | 'processing' | 'completed' | 'failed';
 export type PaymentStatus = 'free' | 'pending' | 'paid';
 export type ScoreLevelDB = 'red' | 'yellow' | 'green';
+export type AnalysisStatus = 'pending' | 'profiling' | 'analyzing' | 'orchestrating' | 'verifying' | 'complete' | 'error';
 
 export interface Profile {
   id: string;
@@ -24,6 +25,9 @@ export interface HealthCheck {
   tier: string;
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;
+  analysis_status: AnalysisStatus;
+  analysis_step: string | null;
+  consented_at: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -34,6 +38,13 @@ export interface WaitlistEntry {
   email: string;
   source: string | null;
   created_at: string;
+}
+
+export interface EmailPreference {
+  email: string;
+  unsubscribed: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Database {
@@ -74,6 +85,9 @@ export interface Database {
           tier?: string;
           stripe_checkout_session_id?: string | null;
           stripe_payment_intent_id?: string | null;
+          analysis_status?: AnalysisStatus;
+          analysis_step?: string | null;
+          consented_at?: string | null;
           created_at?: string;
           updated_at?: string;
           completed_at?: string | null;
@@ -90,6 +104,9 @@ export interface Database {
           tier?: string;
           stripe_checkout_session_id?: string | null;
           stripe_payment_intent_id?: string | null;
+          analysis_status?: AnalysisStatus;
+          analysis_step?: string | null;
+          consented_at?: string | null;
           updated_at?: string;
           completed_at?: string | null;
         };
@@ -107,6 +124,21 @@ export interface Database {
           id?: string;
           email?: string;
           source?: string | null;
+        };
+        Relationships: [];
+      };
+      email_preferences: {
+        Row: EmailPreference;
+        Insert: {
+          email: string;
+          unsubscribed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          email?: string;
+          unsubscribed?: boolean;
+          updated_at?: string;
         };
         Relationships: [];
       };

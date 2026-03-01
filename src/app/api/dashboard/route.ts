@@ -10,10 +10,11 @@ export async function GET() {
       return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 });
     }
 
+    // Query by user_id (preferred) or email (fallback for legacy data)
     const { data, error } = await supabase
       .from('health_checks')
       .select('id, email, answers, overall_score, status, payment_status, tier, created_at')
-      .eq('email', user.email)
+      .or(`user_id.eq.${user.id},email.eq.${user.email}`)
       .order('created_at', { ascending: false });
 
     if (error) {

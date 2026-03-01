@@ -40,12 +40,19 @@ export function Header() {
               {link.label}
             </Link>
           ))}
-          {isLoggedIn && (
+          {isLoggedIn ? (
             <Link
               href="/dashboard"
               className="text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
             >
               Mine rapporter
+            </Link>
+          ) : (
+            <Link
+              href="/auth/login"
+              className="text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+            >
+              Log ind
             </Link>
           )}
           <Button
@@ -82,13 +89,21 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
-            {isLoggedIn && (
+            {isLoggedIn ? (
               <Link
                 href="/dashboard"
                 className="text-sm font-medium text-text-secondary"
                 onClick={() => setMobileOpen(false)}
               >
                 Mine rapporter
+              </Link>
+            ) : (
+              <Link
+                href="/auth/login"
+                className="text-sm font-medium text-text-secondary"
+                onClick={() => setMobileOpen(false)}
+              >
+                Log ind
               </Link>
             )}
             <Button

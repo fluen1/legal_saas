@@ -17,9 +17,11 @@ const FEATURES = [
 
 export function PaywallOverlay({ healthCheckId }: PaywallOverlayProps) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleUpgrade(tier: 'full' | 'premium') {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -35,8 +37,12 @@ export function PaywallOverlay({ healthCheckId }: PaywallOverlayProps) {
       const data = await res.json();
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
+      } else {
+        setError(data.error || 'Kunne ikke oprette betalingslink.');
+        setLoading(false);
       }
     } catch {
+      setError('Netværksfejl — prøv igen.');
       setLoading(false);
     }
   }
@@ -103,6 +109,9 @@ export function PaywallOverlay({ healthCheckId }: PaywallOverlayProps) {
                 'Fuld Rapport — 499 kr'
               )}
             </Button>
+            {error && (
+              <p className="text-sm text-red-600">{error}</p>
+            )}
           </div>
         </div>
       </div>

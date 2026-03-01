@@ -16,6 +16,7 @@ import { WizardAnswers } from '@/types/wizard';
 import type { HealthCheckReport } from '@/types/report';
 import { WizardAnswersSchema } from '@/lib/validation/wizard-answers';
 import { rateLimit } from '@/lib/rate-limit';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 const USE_MULTI_AGENT = process.env.USE_MULTI_AGENT_PIPELINE === 'true';
 
@@ -206,6 +207,16 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient();
 
+    // Try to get authenticated user_id (optional — wizard works without login)
+    let userId: string | null = null;
+    try {
+      const userSupabase = await createServerSupabaseClient();
+      const { data: { user } } = await userSupabase.auth.getUser();
+      if (user) userId = user.id;
+    } catch {
+      // Not logged in — that's fine
+    }
+
     // Rate limit: max 3 health checks per email per 24 hours
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count, error: countError } = await supabase
@@ -232,6 +243,7 @@ export async function POST(request: NextRequest) {
           status: 'processing' as const,
           payment_status: 'free' as const,
           tier,
+          ...(userId && { user_id: userId }),
           ...(consentedAt && { consented_at: consentedAt }),
         })
         .select('id')

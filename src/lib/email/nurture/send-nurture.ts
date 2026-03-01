@@ -15,7 +15,7 @@ function getAppUrl() {
 
 interface NurtureContext {
   email: string;
-  healthCheckId: string;
+  healthCheckId: string | null;
   scoreLevel: string;
   issueCount: number;
 }
@@ -43,8 +43,10 @@ export async function renderNurtureEmail(
   ctx: NurtureContext
 ): Promise<NurtureEmailResult | null> {
   const appUrl = getAppUrl();
-  const reportUrl = `${appUrl}/helbredstjek/resultat?id=${ctx.healthCheckId}`;
-  const checkoutUrl = reportUrl; // checkout is on the same page
+  const reportUrl = ctx.healthCheckId
+    ? `${appUrl}/helbredstjek/resultat?id=${ctx.healthCheckId}`
+    : `${appUrl}/helbredstjek`;
+  const checkoutUrl = reportUrl;
   const unsubscribeUrl = buildUnsubscribeUrl(ctx.email);
 
   const SCORE_LABELS: Record<string, string> = {

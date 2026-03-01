@@ -70,6 +70,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Kunne ikke sende email' }, { status: 500 });
     }
 
+    // Start nurture sequence
+    await supabase.from('nurture_emails').insert({
+      email,
+      sequence_step: 0,
+      next_send_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[Lead Magnet] Error:', error);

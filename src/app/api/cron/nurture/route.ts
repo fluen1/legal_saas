@@ -21,10 +21,10 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const resend = new Resend(process.env.RESEND_API_KEY);
 
-  // 1. Fetch due nurture emails
+  // 1. Fetch due nurture emails (left join: lead magnet rows have no health_check_id)
   const { data: dueEmails, error: fetchError } = await supabase
     .from('nurture_emails')
-    .select('*, health_checks!inner(id, email, report, overall_score, payment_status)')
+    .select('*, health_checks(id, email, report, overall_score, payment_status)')
     .eq('completed', false)
     .eq('unsubscribed', false)
     .lte('next_send_at', new Date().toISOString())
@@ -45,10 +45,14 @@ export async function GET(request: NextRequest) {
 
   for (const record of dueEmails) {
     try {
-      const hc = record.health_checks;
+      // hc may be null for lead-magnet-originated nurture sequences
+      const hc = record.health_checks as {
+        id: string; email: string; report: unknown;
+        overall_score: string | null; payment_status: string;
+      } | null;
 
       // If user has paid, stop the nurture sequence
-      if (hc.payment_status === 'paid') {
+      if (hc?.payment_status === 'paid') {
         await supabase
           .from('nurture_emails')
           .update({ completed: true })
@@ -85,8 +89,8 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // Count issues from report
-      const report = hc.report as { areas?: { issues?: unknown[] }[] } | null;
+      // Count issues from report (0 for lead-magnet nurture)
+      const report = hc?.report as { areas?: { issues?: unknown[] }[] } | null;
       const issueCount = report?.areas?.reduce(
         (sum: number, a: { issues?: unknown[] }) => sum + (a.issues?.length ?? 0),
         0
@@ -95,8 +99,8 @@ export async function GET(request: NextRequest) {
       // Render the email
       const result = await renderNurtureEmail(nextStep, {
         email: record.email,
-        healthCheckId: hc.id,
-        scoreLevel: hc.overall_score ?? 'yellow',
+        healthCheckId: hc?.id ?? null,
+        scoreLevel: hc?.overall_score ?? 'yellow',
         issueCount,
       });
 

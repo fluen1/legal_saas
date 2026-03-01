@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Plus, FileText, ArrowRight } from 'lucide-react';
+import { Loader2, Plus, FileText, ArrowRight, Trash2 } from 'lucide-react';
 import type { HealthCheckStatus, PaymentStatus, ScoreLevelDB } from '@/types/database';
 
 interface DashboardCheck {
@@ -70,6 +70,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [checks, setChecks] = useState<DashboardCheck[]>([]);
   const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -202,6 +204,75 @@ export default function DashboardPage() {
                   </Link>
                 );
               })}
+            </div>
+          )}
+
+          {/* GDPR data deletion */}
+          {!loading && (
+            <div className="mt-12 border-t border-surface-border pt-8">
+              <h2 className="text-lg font-medium text-text-primary">Dataindstillinger</h2>
+              <p className="mt-1 text-sm text-text-secondary">
+                I henhold til GDPR Art. 17 kan du anmode om sletning af alle dine data.
+              </p>
+
+              {!showDeleteConfirm ? (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="mt-4 gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  <Trash2 className="size-4" />
+                  Slet alle mine data
+                </Button>
+              ) : (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+                  <p className="text-sm font-medium text-red-800">
+                    Er du sikker? Alle dine rapporter, data og konto slettes permanent.
+                    Denne handling kan ikke fortrydes.
+                  </p>
+                  <div className="mt-3 flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={deleting}
+                      className="text-sm"
+                    >
+                      Annuller
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        setDeleting(true);
+                        try {
+                          const res = await fetch('/api/gdpr/delete', { method: 'DELETE' });
+                          if (res.ok) {
+                            const supabase = createClient();
+                            await supabase.auth.signOut();
+                            router.replace('/?deleted=true');
+                          } else {
+                            const data = await res.json();
+                            setError(data.error || 'Sletning fejlede.');
+                            setDeleting(false);
+                            setShowDeleteConfirm(false);
+                          }
+                        } catch {
+                          setError('Netværksfejl — prøv igen.');
+                          setDeleting(false);
+                          setShowDeleteConfirm(false);
+                        }
+                      }}
+                      disabled={deleting}
+                      className="gap-2 bg-red-600 text-sm text-white hover:bg-red-700"
+                    >
+                      {deleting ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-4" />
+                      )}
+                      Ja, slet alt permanent
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
