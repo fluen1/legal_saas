@@ -28,6 +28,9 @@ export interface LawReference {
   description: string;
   url: string;
   isEURegulation: boolean;
+  verified?: boolean | null;
+  verifiedAt?: string;
+  retsinformationUrl?: string;
 }
 
 export interface SpecialistIssue {

@@ -59,7 +59,7 @@ export async function runVerifier(
       if (!lawId) {
         return JSON.stringify({ error: "lawId er påkrævet" });
       }
-      const lookupResult = lookupLaw({
+      const lookupResult = await lookupLaw({
         lawId,
         paragraphs: params.paragraphs,
       });
@@ -82,6 +82,7 @@ export async function runVerifier(
         retsinformationUrl: lookupResult.retsinformationUrl,
         content: lookupResult.content,
         tokenEstimate: lookupResult.tokenEstimate,
+        verification: lookupResult.verification,
       });
     },
   });

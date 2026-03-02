@@ -35,6 +35,10 @@ at paragraffer matcher indholdet. Brug det til at tjekke lovhenvisninger.
 For HVER lovhenvisning: Er paragraffen korrekt citeret? Er det den mest specifikke relevante paragraf? Er URL'en korrekt?
 Brug lookup_law til at verificere paragrafnummer mod lovtekst.
 
+**PRE-VERIFICEREDE REFERENCER:** Lovhenvisninger med "verified: true" er allerede verificeret
+mod retsinformation.dk API'en. Du behøver IKKE slå disse op igen — fokusér dine opslag
+på uverificerede eller tvivlsomme referencer i stedet.
+
 ### 2. Subsumtionskvalitet
 - Er faktum korrekt identificeret fra wizard-svarene?
 - Er den citerede paragraf den MEST specifikke? (fx § 59 for software i ansættelse, ikke § 1 om værker generelt)

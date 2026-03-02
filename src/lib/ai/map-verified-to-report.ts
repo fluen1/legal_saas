@@ -12,12 +12,13 @@ function scoreToLevel(score: number): ScoreLevel {
   return "red";
 }
 
-function mapLawRef(ref: LawReference): { law: string; paragraph: string; description: string; url: string } {
+function mapLawRef(ref: LawReference): { law: string; paragraph: string; description: string; url: string; verified?: boolean | null } {
   return {
     law: ref.law,
     paragraph: ref.stk ? `${ref.paragraph}, ${ref.stk}` : ref.paragraph,
     description: ref.description,
     url: ref.url,
+    verified: ref.verified ?? null,
   };
 }
 

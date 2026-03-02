@@ -1,6 +1,6 @@
 import { ReportIssue, RiskLevel } from '@/types/report';
 import { RISK_LABELS } from '@/lib/utils/constants';
-import { CheckCircle2, ExternalLink } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ExternalLink, ShieldCheck } from 'lucide-react';
 
 const RISK_BORDER: Record<RiskLevel, string> = {
   critical: '#EF4444',
@@ -56,7 +56,22 @@ export function IssueItem({ issue }: IssueItemProps) {
           <div className="mt-3 flex flex-wrap gap-2">
             {issue.lawReferences.map((ref, i) => {
               const hasUrl = ref.url && ref.url !== '#' && ref.url.startsWith('http');
-              const className = "inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-sm text-gray-700 transition-colors hover:bg-gray-200";
+              const baseClassName = "inline-flex items-center gap-1 rounded-full px-2 py-1 text-sm transition-colors";
+              const verifiedClassName = ref.verified === true
+                ? `${baseClassName} bg-green-50 text-green-700 hover:bg-green-100`
+                : ref.verified === false
+                  ? `${baseClassName} bg-yellow-50 text-yellow-700 hover:bg-yellow-100`
+                  : `${baseClassName} bg-gray-100 text-gray-700 hover:bg-gray-200`;
+
+              const verificationIcon = ref.verified === true
+                ? <ShieldCheck className="size-3 text-green-600" />
+                : ref.verified === false
+                  ? <AlertTriangle className="size-3 text-yellow-600" />
+                  : null;
+
+              const tooltip = ref.verified === false
+                ? `${ref.description} — Kunne ikke verificeres mod retsinformation.dk`
+                : ref.description;
 
               return hasUrl ? (
                 <a
@@ -64,9 +79,10 @@ export function IssueItem({ issue }: IssueItemProps) {
                   href={ref.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  title={ref.description}
-                  className={className}
+                  title={tooltip}
+                  className={verifiedClassName}
                 >
+                  {verificationIcon}
                   <span>§</span>
                   <span>{ref.law} {ref.paragraph}</span>
                   <ExternalLink className="size-3" />
@@ -74,9 +90,10 @@ export function IssueItem({ issue }: IssueItemProps) {
               ) : (
                 <span
                   key={i}
-                  title={ref.description}
-                  className={className}
+                  title={tooltip}
+                  className={verifiedClassName}
                 >
+                  {verificationIcon}
                   <span>§</span>
                   <span>{ref.law} {ref.paragraph}</span>
                 </span>

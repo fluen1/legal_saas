@@ -14,6 +14,9 @@ export const LawReferenceSchema = z.object({
   description: z.string(),
   url: z.string(),
   isEURegulation: z.boolean(),
+  verified: z.boolean().nullable().optional(),
+  verifiedAt: z.string().optional(),
+  retsinformationUrl: z.string().optional(),
 });
 
 // ─── Specialist output ───

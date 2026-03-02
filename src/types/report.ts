@@ -6,6 +6,7 @@ export interface LawReference {
   paragraph: string;
   description: string;
   url: string;
+  verified?: boolean | null;
 }
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low';

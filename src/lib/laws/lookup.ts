@@ -6,6 +6,7 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { createLogger } from "@/lib/logger";
+import { verifyParagraph, type VerificationResult } from "./verify";
 
 const log = createLogger("lookup_law");
 const LAWS_DIR = join(process.cwd(), "src", "data", "laws");
@@ -17,6 +18,14 @@ export interface LawLookupParams {
   paragraphs?: string;
 }
 
+export interface ParagraphVerification {
+  paragraph: string;
+  stk?: string;
+  verified: boolean | null;
+  verifiedAt: string | null;
+  retsinformationUrl: string | null;
+}
+
 export interface LawLookupResult {
   lawId: string;
   officialTitle: string;
@@ -24,6 +33,7 @@ export interface LawLookupResult {
   retsinformationUrl: string;
   content: string;
   tokenEstimate: number;
+  verification?: ParagraphVerification[];
 }
 
 interface LawMeta {
@@ -31,6 +41,8 @@ interface LawMeta {
   area: string;
   officialTitle: string;
   shortTitle: string;
+  year?: number;
+  number?: number;
   retsinformationUrl?: string;
   filePath: string;
 }
@@ -180,7 +192,7 @@ function buildTableOfContents(content: string): string {
   return `${msg}\n\nIndholdsfortegnelse:\n${toc}`;
 }
 
-export function lookupLaw(params: LawLookupParams): LawLookupResult | null {
+export async function lookupLaw(params: LawLookupParams): Promise<LawLookupResult | null> {
   const meta = getMetadata();
   const law = meta.laws.find((l) => l.id === params.lawId);
   if (!law) return null;
@@ -233,11 +245,41 @@ export function lookupLaw(params: LawLookupParams): LawLookupResult | null {
 
   const extracted = extractParagraphs(content, mainIds, stk);
   const finalContent = extracted || `Ingen matchende paragraffer fundet for "${params.paragraphs}".`;
+
+  // Run verification for each requested paragraph
+  const verification = await runVerification(params.lawId, mainIds, stk);
+
   return {
     ...baseResult,
     content: finalContent,
     tokenEstimate: estimateTokens(finalContent),
+    verification,
   };
+}
+
+async function runVerification(
+  lawId: string,
+  mainIds: string[],
+  stk?: string
+): Promise<ParagraphVerification[]> {
+  try {
+    const results = await Promise.all(
+      mainIds.map(async (paraId): Promise<ParagraphVerification> => {
+        const result = await verifyParagraph(lawId, paraId, stk);
+        return {
+          paragraph: paraId,
+          stk,
+          verified: result.verified,
+          verifiedAt: result.verifiedAt,
+          retsinformationUrl: result.retsinformationUrl,
+        };
+      })
+    );
+    return results;
+  } catch (err) {
+    log.warn(`Verification failed: ${err}`);
+    return [];
+  }
 }
 
 export interface AvailableLaw {

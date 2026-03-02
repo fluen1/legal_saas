@@ -113,6 +113,12 @@ ${JSON.stringify(wizardAnswers, null, 2)}
 ## KONFIDENSSCORING
 For HVERT fund angiv konfidensscore (høj/medium/lav) og confidenceReason.
 
+## VERIFICERING AF LOVHENVISNINGER
+Når du slår op med lookup_law, returnerer svaret et "verification"-felt for hver paragraf:
+- **verified: true** → Paragraffen er verificeret mod retsinformation.dk. Citér med høj tillid og medtag retsinformationUrl.
+- **verified: false** → Paragraffen kunne IKKE verificeres. Undgå at citere den, eller markér den som uverificeret.
+- **verified: null** → Verifikation var ikke mulig (rate limit, ingen API-data). Citér med normal tillid.
+
 ## OUTPUT
 Brug tool_use "submit_analysis" med struktureret data.
 - status: "critical" | "warning" | "ok" baseret på score
