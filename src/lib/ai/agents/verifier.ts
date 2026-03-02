@@ -31,19 +31,21 @@ export async function runVerifier(
     2
   );
 
-  const TOKEN_BUDGET = 25_000;
+  const TOKEN_BUDGET = 10_000;
   let totalTokens = 0;
+  const VERIFIER_TIMEOUT_MS = 30_000;
 
-  const result = await callClaudeWithToolLoop({
+  const verifierPromise = callClaudeWithToolLoop({
     systemPrompt: VERIFIER_SYSTEM_PROMPT,
     userMessage,
     tools: [lawLookupTool, verifierTool],
     toolChoice: { type: "any" },
     finalToolNames: ["submit_verified_report"],
-    maxToolRounds: 8,
+    maxToolRounds: 2,
     enableThinking: false,
-    maxTokens: 16384,
+    maxTokens: 4096,
     useCache: false,
+    requestContext: "verifier",
     executeTool: async (name, input) => {
       if (name !== "lookup_law") {
         return JSON.stringify({ error: `Ukendt tool: ${name}` });
@@ -51,7 +53,7 @@ export async function runVerifier(
       if (totalTokens >= TOKEN_BUDGET) {
         log.warn(`Token-budget overskredet (${(totalTokens / 1000).toFixed(1)}k). Stopper nye opslag.`);
         return JSON.stringify({
-          error: "Token-budget overskredet (25.000). Afslut din verificering med de data du har. Brug submit_verified_report nu.",
+          error: "Token-budget overskredet. Afslut med submit_verified_report nu.",
         });
       }
       const params = input as { lawId?: string; paragraphs?: string };
@@ -67,14 +69,9 @@ export async function runVerifier(
         return JSON.stringify({ error: `Lov ikke fundet: ${lawId}` });
       }
       totalTokens += lookupResult.tokenEstimate;
-      const k = (lookupResult.tokenEstimate / 1000).toFixed(1);
-      const totalK = (totalTokens / 1000).toFixed(1);
       log.info(
-        `lookup_law: ${lawId}${params.paragraphs ? ` ${params.paragraphs}` : ""} (${k}k tokens, total: ${totalK}k)`
+        `lookup_law: ${lawId}${params.paragraphs ? ` ${params.paragraphs}` : ""} (${(lookupResult.tokenEstimate / 1000).toFixed(1)}k tokens)`
       );
-      if (totalTokens > TOKEN_BUDGET) {
-        log.warn(`ADVARSEL: Token-budget overskredet (${totalK}k)`);
-      }
       return JSON.stringify({
         lawId: lookupResult.lawId,
         officialTitle: lookupResult.officialTitle,
@@ -86,6 +83,26 @@ export async function runVerifier(
       });
     },
   });
+
+  // Race against 30s timeout — skip verifier if it takes too long
+  let result;
+  try {
+    result = await Promise.race([
+      verifierPromise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Verifier timeout (30s)")), VERIFIER_TIMEOUT_MS)
+      ),
+    ]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log.warn(`Verifier skipped: ${msg}`);
+    return {
+      report,
+      qualityScore: 70,
+      modifications: [],
+      warnings: [`Verifier sprunget over: ${msg}`],
+    };
+  }
 
   if (result.toolUse?.name === "submit_verified_report") {
     const input = result.toolUse.input as Record<string, unknown>;
@@ -108,17 +125,16 @@ export async function runVerifier(
       log.error(`Zod validation failed:\n${errorMsg}`);
       sendAdminAlert(
         'Verifier output validation failed',
-        `Zod errors:\n${errorMsg}\n\nReport keys: ${Object.keys(verifiedReport ?? {}).join(', ')}\nInput keys: ${Object.keys(input).join(', ')}`
+        `Zod errors:\n${errorMsg}\n\nInput keys: ${Object.keys(input).join(', ')}`
       ).catch(() => {});
 
-      // Use unvalidated output as fallback
       const hasAreas = Array.isArray(verifiedReport?.areas);
       log.warn(`Using unvalidated output: areas=${hasAreas ? verifiedReport.areas.length : 0}`);
       return Object.assign(assembled, { _metrics: result.metrics });
     }
 
     const validData = parsed.data;
-    log.info(`submit_verified_report: qualityScore=${validData.qualityScore}, areas=${validData.report.areas.length}, mods=${validData.modifications.length}, warns=${validData.warnings.length}`);
+    log.info(`submit_verified_report: qualityScore=${validData.qualityScore}, mods=${validData.modifications.length}, warns=${validData.warnings.length}`);
     return Object.assign(validData as VerifiedReport, { _metrics: result.metrics });
   }
 
