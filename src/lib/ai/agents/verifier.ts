@@ -84,13 +84,13 @@ export async function runVerifier(
     },
   });
 
-  // Race against 30s timeout — skip verifier if it takes too long
+  // Race against 45s timeout — skip verifier if it takes too long
   let result;
   try {
     result = await Promise.race([
       verifierPromise,
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Verifier timeout (30s)")), VERIFIER_TIMEOUT_MS)
+        setTimeout(() => reject(new Error("Verifier timeout (45s)")), VERIFIER_TIMEOUT_MS)
       ),
     ]);
   } catch (err) {
