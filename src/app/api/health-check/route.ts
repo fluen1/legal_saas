@@ -137,8 +137,14 @@ async function runPipelineBackground(
       completed_at: new Date().toISOString(),
       analysis_status: 'complete',
       analysis_step: null,
-      ...(pipelineMetrics ? { pipeline_metrics: pipelineMetrics } : {}),
     });
+
+    // Save pipeline metrics separately (non-blocking — column may not exist yet)
+    if (pipelineMetrics) {
+      updateHealthCheck(supabase, checkId, {
+        pipeline_metrics: pipelineMetrics,
+      }).catch(() => {});
+    }
 
     if (updateErr) {
       log.error(`CRITICAL: Report generated but could not save for ${checkId}`);
