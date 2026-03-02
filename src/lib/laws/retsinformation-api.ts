@@ -74,18 +74,23 @@ export interface ParagraphResponse {
 
 // ─── Public API ───
 
+export type FetchResult =
+  | { status: "found"; data: ParagraphResponse }
+  | { status: "not_found" }
+  | { status: "unavailable" }; // rate limit, timeout, error — don't cache
+
 /**
  * Fetch a specific paragraph from retsinformation-api.dk.
- * Returns parsed paragraph data or null on any failure / rate limit.
+ * Returns discriminated result so callers can distinguish 404 from rate limit/errors.
  */
 export async function fetchParagraph(
   year: number,
   number: number,
   paragraphNr: string
-): Promise<ParagraphResponse | null> {
+): Promise<FetchResult> {
   if (!canMakeRequest()) {
     log.warn("Rate limit reached — skipping API call");
-    return null;
+    return { status: "unavailable" };
   }
 
   const url = `${BASE_URL}/lovgivning/${year}/${number}/paragraphs/${encodeURIComponent(paragraphNr)}`;
@@ -102,24 +107,24 @@ export async function fetchParagraph(
     if (!res.ok) {
       if (res.status === 404) {
         log.info(`Paragraph ${paragraphNr} not found for ${year}/${number}`);
-        return null;
+        return { status: "not_found" };
       }
       if (res.status === 429) {
         log.warn("Rate limited by API (429)");
-        return null;
+        return { status: "unavailable" };
       }
       log.warn(`API returned ${res.status} for ${url}`);
-      return null;
+      return { status: "unavailable" };
     }
 
     const data = (await res.json()) as ParagraphResponse;
-    return data;
+    return { status: "found", data };
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       log.warn(`Timeout fetching paragraph ${paragraphNr} for ${year}/${number}`);
     } else {
       log.warn(`Error fetching paragraph: ${err}`);
     }
-    return null;
+    return { status: "unavailable" };
   }
 }

@@ -126,7 +126,15 @@ async function main() {
 
       // Fetch from API
       const result = await fetchParagraph(law.year, law.number, paraNum);
-      const verified = result !== null;
+
+      // Skip caching if API was unavailable (rate limit, timeout)
+      if (result.status === "unavailable") {
+        process.stdout.write("?");
+        totalSkipped++;
+        continue;
+      }
+
+      const verified = result.status === "found";
       const now = new Date().toISOString();
       const url = `https://www.retsinformation.dk/eli/lta/${law.year}/${law.number}`;
 
@@ -136,7 +144,7 @@ async function main() {
           paragraph: paraNum,
           stk: null,
           verified,
-          api_response: result ?? null,
+          api_response: result.status === "found" ? result.data : null,
           retsinformation_url: url,
           verified_at: now,
           expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(),

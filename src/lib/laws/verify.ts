@@ -110,11 +110,16 @@ async function liveVerify(
 ): Promise<VerificationResult> {
   const result = await fetchParagraph(year, number, paragraph);
 
-  const verified = result !== null;
+  // If API was unavailable (rate limit, timeout, error), don't cache — return unknown
+  if (result.status === "unavailable") {
+    return UNVERIFIED;
+  }
+
+  const verified = result.status === "found";
   const now = new Date().toISOString();
   const url = `https://www.retsinformation.dk/eli/lta/${year}/${number}`;
 
-  // Write to cache (fire-and-forget)
+  // Write to cache (fire-and-forget) — only cache definitive results
   try {
     const sb = createAdminClient();
     await sb.from("verified_citations").upsert(
@@ -123,7 +128,7 @@ async function liveVerify(
         paragraph,
         stk: stk ?? null,
         verified,
-        api_response: result ?? null,
+        api_response: result.status === "found" ? result.data : null,
         retsinformation_url: url,
         verified_at: now,
         expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(),
