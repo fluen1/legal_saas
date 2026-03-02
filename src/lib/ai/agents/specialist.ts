@@ -98,10 +98,10 @@ export async function runSpecialistAgent(
         `Zod errors:\n${errorMsg}\n\nRaw keys: ${Object.keys(raw as Record<string, unknown>).join(', ')}`
       ).catch(() => {});
 
-      return raw as SpecialistAnalysis;
+      return Object.assign(raw as SpecialistAnalysis, { _metrics: result.metrics, _lawTokens: totalTokens });
     }
 
-    return parsed.data as SpecialistAnalysis;
+    return Object.assign(parsed.data as SpecialistAnalysis, { _metrics: result.metrics, _lawTokens: totalTokens });
   }
 
   throw new Error(`Specialist ${config.id} did not return tool_use. Got: ${result.text?.slice(0, 200)}`);

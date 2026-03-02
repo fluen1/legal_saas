@@ -34,9 +34,17 @@ export interface CallClaudeOptions {
   requestContext?: string;
 }
 
+export interface ToolLoopMetrics {
+  toolRounds: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  retries: number;
+}
+
 export interface CallClaudeResult {
   text: string | null;
   toolUse: { name: string; input: unknown } | null;
+  metrics?: ToolLoopMetrics;
 }
 
 /**
@@ -47,8 +55,9 @@ async function doStreamRequest(
   client: Anthropic,
   params: Record<string, unknown>,
   context?: string
-): Promise<Anthropic.Messages.Message> {
+): Promise<{ message: Anthropic.Messages.Message; retriesUsed: number }> {
   const ctx = context ? `[${context}]` : "";
+  let retriesUsed = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
     const callStart = Date.now();
     try {
@@ -57,7 +66,7 @@ async function doStreamRequest(
       const stream = client.messages.stream(streamParams as Parameters<typeof client.messages.stream>[0]);
       const response = await stream.finalMessage();
       log.info(`${ctx} API call completed in ${((Date.now() - callStart) / 1000).toFixed(1)}s`);
-      return response;
+      return { message: response, retriesUsed };
     } catch (err: unknown) {
       const elapsed = ((Date.now() - callStart) / 1000).toFixed(1);
       const status = (err as { status?: number })?.status;
@@ -66,6 +75,7 @@ async function doStreamRequest(
       // Retry on 429 (rate limit) and 529 (overloaded) — both are transient
       const isRetryable = status === 429 || status === 529;
       if (isRetryable && attempt < 2) {
+        retriesUsed++;
         const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : null;
         const exponentialMs = 5000 * Math.pow(2, attempt); // 5s, 10s
         const waitMs = retryAfterMs
@@ -131,8 +141,8 @@ export async function callClaudeAdvanced(options: CallClaudeOptions): Promise<Ca
       : {}),
   };
 
-  const response = await doStreamRequest(client, params, options.requestContext);
-  return extractResult(response);
+  const { message } = await doStreamRequest(client, params, options.requestContext);
+  return extractResult(message);
 }
 
 export type ToolExecutor = (name: string, input: unknown) => Promise<string>;
@@ -190,6 +200,10 @@ export async function callClaudeWithToolLoop(
     };
   };
 
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let totalRetries = 0;
+
   for (let round = 0; round < maxRounds; round++) {
     const isLastRound = round === maxRounds - 1;
     if (isLastRound) {
@@ -197,18 +211,28 @@ export async function callClaudeWithToolLoop(
     } else {
       log.info(`[${options.requestContext ?? "tool-loop"}] Tool round ${round + 1}/${maxRounds}`);
     }
-    const response = await doStreamRequest(client, buildParams(messages, isLastRound), options.requestContext);
+    const { message: response, retriesUsed } = await doStreamRequest(client, buildParams(messages, isLastRound), options.requestContext);
+    totalRetries += retriesUsed;
+    if (response.usage) {
+      totalInputTokens += response.usage.input_tokens;
+      totalOutputTokens += response.usage.output_tokens;
+    }
     const content = response.content ?? [];
     const toolUses = content.filter(
       (b) => "type" in b && b.type === "tool_use" && "id" in b && "name" in b && "input" in b
     ) as Array<{ type: "tool_use"; id: string; name: string; input: unknown }>;
     const textBlock = content.find((b) => "type" in b && b.type === "text");
 
+    const buildMetrics = (rounds: number): ToolLoopMetrics => ({
+      toolRounds: rounds, totalInputTokens, totalOutputTokens, retries: totalRetries,
+    });
+
     for (const tu of toolUses) {
       if (finalToolNames.has(tu.name)) {
         return {
           text: textBlock && "text" in textBlock ? textBlock.text : null,
           toolUse: { name: tu.name, input: tu.input },
+          metrics: buildMetrics(round + 1),
         };
       }
     }
@@ -217,6 +241,7 @@ export async function callClaudeWithToolLoop(
       return {
         text: textBlock && "text" in textBlock ? textBlock.text : null,
         toolUse: null,
+        metrics: buildMetrics(round + 1),
       };
     }
 

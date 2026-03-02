@@ -74,6 +74,7 @@ async function runPipelineBackground(
 
   try {
     let report: HealthCheckReport;
+    let pipelineMetrics: unknown = null;
 
     if (USE_MULTI_AGENT) {
       // Vercel Pro allows 900s; use env override for local dev
@@ -98,9 +99,8 @@ async function runPipelineBackground(
       }
 
       report = mapVerifiedReportToHealthCheck(verified);
-      // Include pipeline timings for diagnostics
-      const timings = (verified as unknown as Record<string, unknown>)._timings;
-      if (timings) (report as unknown as Record<string, unknown>)._timings = timings;
+      // Extract pipeline metrics for separate JSONB column
+      pipelineMetrics = (verified as unknown as Record<string, unknown>)._metrics ?? null;
     } else {
       await updateHealthCheck(supabase, checkId, {
         analysis_status: 'analyzing',
@@ -137,6 +137,7 @@ async function runPipelineBackground(
       completed_at: new Date().toISOString(),
       analysis_status: 'complete',
       analysis_step: null,
+      ...(pipelineMetrics ? { pipeline_metrics: pipelineMetrics } : {}),
     });
 
     if (updateErr) {

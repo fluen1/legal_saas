@@ -42,4 +42,7 @@ export interface HealthCheckReport {
   actionPlan: ActionItem[];
   generatedAt: string;
   disclaimer: string;
+  /** Pipeline metadata (multi-agent only) */
+  warnings?: string[];
+  qualityScore?: number;
 }

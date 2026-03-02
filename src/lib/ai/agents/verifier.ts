@@ -114,12 +114,12 @@ export async function runVerifier(
       // Use unvalidated output as fallback
       const hasAreas = Array.isArray(verifiedReport?.areas);
       log.warn(`Using unvalidated output: areas=${hasAreas ? verifiedReport.areas.length : 0}`);
-      return assembled;
+      return Object.assign(assembled, { _metrics: result.metrics });
     }
 
     const validData = parsed.data;
     log.info(`submit_verified_report: qualityScore=${validData.qualityScore}, areas=${validData.report.areas.length}, mods=${validData.modifications.length}, warns=${validData.warnings.length}`);
-    return validData as VerifiedReport;
+    return Object.assign(validData as VerifiedReport, { _metrics: result.metrics });
   }
 
   log.warn("Verifikator returnerede ikke submit_verified_report — rapport markeres som uverificeret.");

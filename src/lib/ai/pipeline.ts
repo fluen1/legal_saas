@@ -9,6 +9,7 @@ import { runOrchestrator } from "./agents/orchestrator";
 import { runVerifier } from "./agents/verifier";
 import { AREA_CONFIGS } from "./agents/config";
 import type { OrchestratorOutput, OrchestratorScoring, SpecialistAnalysis, VerifiedReport } from "./agents/types";
+import type { ToolLoopMetrics } from "./claude-advanced";
 import type { WizardAnswers } from "@/types/wizard";
 import { createLogger } from "@/lib/logger";
 
@@ -22,6 +23,23 @@ export interface PipelineTimings {
   orchestrator: number;
   verifier: number;
   total: number;
+}
+
+export interface PipelineMetrics {
+  timings: PipelineTimings;
+  specialists: Record<string, {
+    toolRounds: number;
+    inputTokens: number;
+    outputTokens: number;
+    lawTokens: number;
+  }>;
+  verifier?: {
+    toolRounds: number;
+    inputTokens: number;
+    outputTokens: number;
+  };
+  qualityScore: number;
+  warnings: string[];
 }
 
 const PIPELINE_TIMEOUT_MS = parseInt(process.env.PIPELINE_TIMEOUT_MS ?? "280000", 10);
@@ -173,7 +191,40 @@ export async function runHealthCheckPipeline(
   log.info(`Pipeline complete: ${timings.total.toFixed(1)}s total`);
   await onStatus?.("complete", "Færdig");
 
-  return Object.assign(verifiedReport, { _timings: timings });
+  // Collect specialist metrics
+  const specialistMetrics: PipelineMetrics["specialists"] = {};
+  for (const result of specialistResults) {
+    if (result) {
+      const m = (result as unknown as { _metrics?: ToolLoopMetrics })._metrics;
+      const lawTokens = (result as unknown as { _lawTokens?: number })._lawTokens ?? 0;
+      if (m) {
+        specialistMetrics[result.area] = {
+          toolRounds: m.toolRounds,
+          inputTokens: m.totalInputTokens,
+          outputTokens: m.totalOutputTokens,
+          lawTokens,
+        };
+      }
+    }
+  }
+
+  // Collect verifier metrics
+  const vm = (verifiedReport as unknown as { _metrics?: ToolLoopMetrics })._metrics;
+  const verifierMetrics = vm ? {
+    toolRounds: vm.toolRounds,
+    inputTokens: vm.totalInputTokens,
+    outputTokens: vm.totalOutputTokens,
+  } : undefined;
+
+  const pipelineMetrics: PipelineMetrics = {
+    timings,
+    specialists: specialistMetrics,
+    verifier: verifierMetrics,
+    qualityScore: verifiedReport.qualityScore,
+    warnings: verifiedReport.warnings,
+  };
+
+  return Object.assign(verifiedReport, { _timings: timings, _metrics: pipelineMetrics });
 }
 
 /** Fill in missing specialist analyses with placeholder data */

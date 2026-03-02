@@ -57,5 +57,7 @@ export function mapVerifiedReportToHealthCheck(verified: VerifiedReport): Health
     generatedAt: new Date().toISOString(),
     disclaimer:
       "Denne rapport er genereret af en AI-assistent og erstatter ikke individuel juridisk rådgivning.",
+    warnings: verified.warnings,
+    qualityScore: verified.qualityScore,
   };
 }
