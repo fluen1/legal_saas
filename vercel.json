@@ -4,7 +4,8 @@
   "functions": {
     "src/app/api/health-check/route.ts": { "maxDuration": 800 },
     "src/app/api/report/*/pdf/route.ts": { "maxDuration": 60 },
-    "src/app/api/admin/update-laws/route.ts": { "maxDuration": 120 }
+    "src/app/api/admin/update-laws/route.ts": { "maxDuration": 120 },
+    "src/app/api/cron/seed-citations/route.ts": { "maxDuration": 300 }
   },
   "crons": [
     {
@@ -14,6 +15,10 @@
     {
       "path": "/api/cron/nurture",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/seed-citations",
+      "schedule": "0 3 * * *"
     }
   ]
 }
