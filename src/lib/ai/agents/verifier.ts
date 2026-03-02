@@ -33,7 +33,7 @@ export async function runVerifier(
 
   const TOKEN_BUDGET = 10_000;
   let totalTokens = 0;
-  const VERIFIER_TIMEOUT_MS = 30_000;
+  const VERIFIER_TIMEOUT_MS = 45_000;
 
   const verifierPromise = callClaudeWithToolLoop({
     systemPrompt: VERIFIER_SYSTEM_PROMPT,
