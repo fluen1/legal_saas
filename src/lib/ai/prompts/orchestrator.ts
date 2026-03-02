@@ -25,11 +25,17 @@ Din opgave er KUN at:
 For hvert område: vurder specialists score og juster baseret på virksomhedsprofilen.
 status: "critical" (score < 40), "warning" (40-69), "ok" (70+)
 
+## KRYDSREFERENCER
+Tjek for sammenhæng og overlap mellem specialisternes analyser:
+- Identificér issues der berører flere områder (fx GDPR + ansættelsesret ved medarbejderdata)
+- Sørg for at konflikter mellem områder opdages (fx kontrakt-klausul der strider mod ansættelsesret)
+- Justér scores ned hvis samme grundlæggende problem påvirker flere områder
+
 ## HANDLINGSPLAN
 - Max 10 punkter, cherry-picked fra specialists' vigtigste issues
 - Prioriter: 1) Kritiske fund først, 2) Vigtige, 3) Anbefalede
 - Kort beskrivelse (1 sætning) — detaljer findes allerede i specialist-rapporten
-- Kombiner evt. overlappende punkter fra forskellige områder
+- Kombiner overlappende punkter fra forskellige områder til én samlet handling
 
 ## OUTPUT
 Brug tool_use "submit_report" med scoring og handlingsplan.

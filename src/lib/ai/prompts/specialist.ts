@@ -8,6 +8,137 @@ import type { CompanyProfile } from "../agents/types";
 import type { AvailableLaw } from "@/lib/laws/lookup";
 import type { WizardAnswers } from "@/types/wizard";
 
+const AREA_EXAMPLES: Record<string, string> = {
+  gdpr: `## EKSEMPEL: GDPR-analyse for webshop
+
+Trin 1 FAKTUM: E-commerce virksomhed med webshop. Bruger Google Analytics
+og Facebook Pixel. Ingen cookiebanner. Ingen privatlivspolitik på hjemmesiden.
+
+Trin 2 JUS: GDPR art. 6 stk. 1 litra a: Behandling kræver samtykke.
+GDPR art. 13: Oplysningspligt ved indsamling hos den registrerede.
+Cookiebekendtgørelsen § 4: Samtykke til cookies.
+Databeskyttelsesloven § 6: Supplerer GDPR med danske regler.
+Hypotese: Uden cookiebanner og privatlivspolitik overtrædes både
+GDPR art. 13 og cookiebekendtgørelsen § 4.
+
+Trin 3 OPSLAG:
+→ lookup_law("cookiebekendtgoerelsen", "§§ 3-5")
+→ lookup_law("databeskyttelsesloven", "§§ 5-7")
+
+Trin 4 SUBSUMTION: Virksomheden anvender Google Analytics og Facebook
+Pixel (faktum) → disse sætter tredjepartscookies → cookiebekendtgørelsen
+§ 4 kræver informeret samtykke FØR cookies sættes → samtykke indhentes
+ikke (ingen cookiebanner) → overtrædelse. Derudover: ingen
+privatlivspolitik → GDPR art. 13 oplysningspligt ikke opfyldt.
+
+Trin 5 RETSFØLGE: Datatilsynet kan udstede påbud og bøde op til
+4% af global omsætning jf. GDPR art. 83. Anbefaling: Implementer
+cookiebanner med opt-in og udarbejd privatlivspolitik.`,
+
+  employment: `## EKSEMPEL: Ansættelsesret-analyse for mindre virksomhed
+
+Trin 1 FAKTUM: Virksomhed med 8 ansatte. Ingen skriftlige
+ansættelsesbeviser udleveret. Mundtlige aftaler om løn og arbejdstid.
+
+Trin 2 JUS: Ansættelsesbevisloven § 1: Arbejdsgiver skal oplyse
+lønmodtager om væsentlige vilkår. § 2: Oplysningerne skal gives
+skriftligt. § 3: Frist for udlevering senest 7 dage efter tiltrædelse.
+§ 5: Godtgørelse ved manglende ansættelsesbevis.
+Hypotese: Uden skriftlige beviser overtrædes § 2's formkrav.
+
+Trin 3 OPSLAG:
+→ lookup_law("ansaettelsesbevisloven", "§§ 1-5")
+
+Trin 4 SUBSUMTION: Virksomheden har 8 ansatte uden skriftlige
+ansættelsesbeviser (faktum) → ansaettelsesbevisloven § 1 pålægger
+arbejdsgiveren oplysningspligt → § 2 kræver skriftlig form →
+§ 3 fastsætter frist på 7 dage → ingen beviser udleveret →
+overtrædelse af §§ 1-3.
+
+Trin 5 RETSFØLGE: Medarbejder kan kræve godtgørelse jf. § 5,
+typisk 1.000-25.000 kr. afhængigt af overtrædelsens karakter.
+Anbefaling: Udarbejd og udlever ansættelsesbeviser til alle ansatte.`,
+
+  corporate: `## EKSEMPEL: Selskabsret-analyse for ApS med to ejere
+
+Trin 1 FAKTUM: ApS med to ejere (50/50 ejerskab). Kun standardvedtægter
+fra Erhvervsstyrelsen. Ingen ejeraftale. Ingen forretningsorden for
+bestyrelsen.
+
+Trin 2 JUS: Selskabsloven § 139: Vedtægter skal indeholde bestemte
+oplysninger. § 140: Generalforsamling som øverste myndighed.
+§ 141: Stemmeret efter kapitalandele.
+Hypotese: 50/50 ejerskab + § 141's stemmeregel = deadlock-risiko
+ved uenighed, da ingen ejer har flertal.
+
+Trin 3 OPSLAG:
+→ lookup_law("selskabsloven", "§§ 139-146")
+
+Trin 4 SUBSUMTION: ApS har to ejere med 50/50 ejerskab (faktum) →
+selskabsloven § 141 giver stemmeret efter kapitalandele → ingen ejer
+har flertal → ved uenighed kan hverken generalforsamling (§ 140)
+eller bestyrelse træffe beslutninger → deadlock-risiko.
+Standardvedtægter indeholder ingen tvisteløsningsmekanisme.
+
+Trin 5 RETSFØLGE: Deadlock kan lamme selskabet og potentielt føre
+til tvangsopløsning. Anbefaling: Udarbejd ejeraftale med
+tvisteløsning (mægling, shoot-out klausul) og stemmefordelingsregler.`,
+
+  contracts: `## EKSEMPEL: Kontraktanalyse for konsulentvirksomhed
+
+Trin 1 FAKTUM: IT-konsulentfirma med 12 kunder. Ingen skriftlige
+kundeaftaler — alt er baseret på mundtlige aftaler og e-mails.
+Ingen standardbetingelser.
+
+Trin 2 JUS: Aftaleloven § 1: Aftaler bindes ved tilbud og accept.
+§ 36: Urimelige aftalevilkår kan tilsidesættes.
+§ 38b: Konkurrenceklausuler kræver kompensation.
+Hypotese: Mundtlige aftaler er gyldige jf. § 1, men manglende
+skriftlighed skaber bevisproblemer ved tvist.
+
+Trin 3 OPSLAG:
+→ lookup_law("aftaleloven", "§§ 1-6")
+→ lookup_law("aftaleloven", "§§ 36-38b")
+
+Trin 4 SUBSUMTION: Konsulentfirma indgår mundtlige aftaler (faktum) →
+aftaleloven § 1 anerkender mundtlige aftaler som bindende → men
+uden skriftlig dokumentation bærer leverandøren bevisbyrden ved tvist →
+ansvar, leverance og betalingsvilkår er udokumenterede → risiko
+for tab ved uenighed.
+
+Trin 5 RETSFØLGE: Bevismæssig usikkerhed kan føre til tab i
+retssager. Anbefaling: Udarbejd standardkundeaftale med klare
+vilkår for leverance, betaling, ansvar og IP-rettigheder.`,
+
+  ip: `## EKSEMPEL: IP-analyse for IT-konsulent
+
+Trin 1 FAKTUM: IT-konsulentvirksomhed. Udvikler software for kunder.
+Ingen IP-klausuler i kundeaftaler.
+
+Trin 2 JUS: Ophavsretsloven regulerer softwarerettigheder.
+§ 1 stk. 3: Software er litterære værker.
+§ 59: Software skabt i ansættelsesforhold tilhører arbejdsgiver.
+§ 53: Overdragelse af ophavsret kræver aftale.
+§ 53 stk. 3: Specifikationsprincippet begrænser overdragelse.
+Hypotese: § 59 gælder IKKE for konsulenter (kun ansatte),
+så § 53 om aftalt overdragelse er afgørende.
+
+Trin 3 OPSLAG:
+→ lookup_law("ophavsretsloven", "§§ 53-59")
+
+Trin 4 SUBSUMTION: Virksomheden leverer software til kunder (faktum).
+Som konsulent (ikke ansat) beholder ophavsmanden rettighederne jf. § 1.
+§ 59 om overgang til arbejdsgiver gælder IKKE, da der ikke er et
+ansættelsesforhold. Uden skriftlig aftale om overdragelse jf. § 53
+forbliver rettighederne hos konsulenten. Kunden har dermed ingen
+dokumenteret ret til den leverede kode.
+
+Trin 5 RETSFØLGE: Risiko for tvist om ejendomsret til leveret software.
+Anbefaling: Definer IP-rettigheder i alle kundeaftaler med klar
+sondring mellem projektspecifik kode (overdragelse) og generiske
+komponenter (licens).`,
+};
+
 export function buildSpecialistPrompt(
   config: AreaConfig,
   profile: CompanyProfile,
@@ -76,36 +207,16 @@ ${lawsList}
 5. Brug den MEST SPECIFIKKE paragraf (§ 59 for software i ansættelse,
    ikke § 1 om værker generelt).
 
-## EKSEMPEL: IP-analyse for IT-konsulent
-
-Trin 1 FAKTUM: IT-konsulentvirksomhed. Udvikler software for kunder.
-Ingen IP-klausuler i kundeaftaler.
-
-Trin 2 JUS: Ophavsretsloven regulerer softwarerettigheder.
-§ 1 stk. 3: Software er litterære værker.
-§ 59: Software skabt i ansættelsesforhold tilhører arbejdsgiver.
-§ 53: Overdragelse af ophavsret kræver aftale.
-§ 53 stk. 3: Specifikationsprincippet begrænser overdragelse.
-Hypotese: § 59 gælder IKKE for konsulenter (kun ansatte),
-så § 53 om aftalt overdragelse er afgørende.
-
-Trin 3 OPSLAG:
-→ lookup_law("ophavsretsloven", "§§ 53-59")
-
-Trin 4 SUBSUMTION: Virksomheden leverer software til kunder (faktum).
-Som konsulent (ikke ansat) beholder ophavsmanden rettighederne jf. § 1.
-§ 59 om overgang til arbejdsgiver gælder IKKE, da der ikke er et
-ansættelsesforhold. Uden skriftlig aftale om overdragelse jf. § 53
-forbliver rettighederne hos konsulenten. Kunden har dermed ingen
-dokumenteret ret til den leverede kode.
-
-Trin 5 RETSFØLGE: Risiko for tvist om ejendomsret til leveret software.
-Anbefaling: Definer IP-rettigheder i alle kundeaftaler med klar
-sondring mellem projektspecifik kode (overdragelse) og generiske
-komponenter (licens).
+${AREA_EXAMPLES[config.id] ?? ""}
 ${weightSection}
 ## VIRKSOMHEDSPROFIL
 ${companyProfile}
+
+## BRANCHEKONTEKST
+Branche: ${profile.industry}. Tilpas din analyse til branchen:
+- Identificér branchespecifikke lovkrav og risici for ${config.name}
+- Vær opmærksom på særregler der gælder for "${profile.industry}"-branchen
+- Prioritér de krav der er mest relevante for denne branchetype
 
 ## WIZARD-SVAR
 ${JSON.stringify(wizardAnswers, null, 2)}
