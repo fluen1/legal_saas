@@ -156,7 +156,8 @@ async function liveVerify(
 export async function verifyParagraph(
   lawId: string,
   paragraph: string,
-  stk?: string
+  stk?: string,
+  options?: { skipApiCall?: boolean }
 ): Promise<VerificationResult> {
   const meta = getMetadata();
   const law = meta.laws.find((l) => l.id === lawId);
@@ -181,7 +182,16 @@ export async function verifyParagraph(
     return cached;
   }
 
-  // Tier 3: Live API (only if we have year/number)
+  // Tier 3: Live API (only if we have year/number and not skipping API)
+  if (options?.skipApiCall) {
+    log.info(`Tier 3 skipped (skipApiCall) for ${lawId} § ${paraNum} — local check passed, returning local-verified`);
+    return {
+      verified: true,
+      verifiedAt: new Date().toISOString(),
+      retsinformationUrl: law.retsinformationUrl ?? null,
+    };
+  }
+
   if (law.year && law.number) {
     log.info(`Tier 3: Live API lookup for ${lawId} § ${paraNum}`);
     return liveVerify(lawId, paraNum, stk ?? null, law.year, law.number);
@@ -190,4 +200,148 @@ export async function verifyParagraph(
   // No year/number in metadata — local check passed, return null (can't fully verify)
   log.info(`No year/number for ${lawId} — returning local-only result`);
   return UNVERIFIED;
+}
+
+// ─── Bulk report verification ───
+
+interface LawMetaFull {
+  id: string;
+  shortTitle: string;
+  officialTitle: string;
+  filePath: string;
+  year?: number;
+  number?: number;
+  retsinformationUrl?: string;
+}
+
+let _fullMetadata: { laws: LawMetaFull[] } | null = null;
+
+function getFullMetadata(): { laws: LawMetaFull[] } {
+  if (!_fullMetadata) {
+    const path = join(LAWS_DIR, "metadata.json");
+    if (!existsSync(path)) return { laws: [] };
+    _fullMetadata = JSON.parse(readFileSync(path, "utf-8"));
+  }
+  return _fullMetadata ?? { laws: [] };
+}
+
+/** Build reverse map: normalized shortTitle → lawId */
+function buildLawNameMap(): Map<string, string> {
+  const meta = getFullMetadata();
+  const map = new Map<string, string>();
+  for (const law of meta.laws) {
+    // Map shortTitle → id (e.g. "aftaleloven" → "aftaleloven")
+    map.set(law.shortTitle.toLowerCase(), law.id);
+    // Also map id itself
+    map.set(law.id.toLowerCase(), law.id);
+  }
+  return map;
+}
+
+/** Resolve a display law name (e.g. "Databeskyttelsesloven") to a lawId (e.g. "databeskyttelsesloven") */
+export function resolveLawId(displayName: string): string | null {
+  const nameMap = buildLawNameMap();
+  const normalized = displayName.toLowerCase().trim();
+
+  // Direct match
+  const direct = nameMap.get(normalized);
+  if (direct) return direct;
+
+  // Skip EU regulations (GDPR, etc.)
+  if (/gdpr|eu.*2016|forordning/i.test(displayName)) return null;
+
+  // Normalize Danish characters: æ→ae, ø→oe, å→aa
+  const asciiNormalized = normalized
+    .replace(/æ/g, "ae")
+    .replace(/ø/g, "oe")
+    .replace(/å/g, "aa");
+  const ascii = nameMap.get(asciiNormalized);
+  if (ascii) return ascii;
+
+  // Fuzzy: strip common prefixes/suffixes and try again
+  const stripped = normalized
+    .replace(/^(lov om |bekendtgørelse af |bekendtgørelse om )/, "")
+    .trim();
+  const fuzzy = nameMap.get(stripped);
+  if (fuzzy) return fuzzy;
+
+  return null;
+}
+
+/**
+ * Parse a lawReference paragraph string into paragraph number and stk.
+ * Examples:
+ *   "§ 41, stk. 1"  → { paragraph: "41", stk: "1" }
+ *   "Art. 30, stk. 1" → { paragraph: "30", stk: "1" }  (for GDPR/EU)
+ *   "§ 15a"          → { paragraph: "15a", stk: undefined }
+ */
+export function parseRefParagraph(para: string): { paragraph: string; stk?: string } | null {
+  if (!para) return null;
+
+  let stk: string | undefined;
+  const stkMatch = para.match(/stk\.\s*(\d+)/i);
+  if (stkMatch) stk = stkMatch[1];
+
+  // Match "§ N", "Art. N", or just "N"
+  const paraMatch = para.match(/(?:§|art\.?)\s*(\d+\s*[a-e]?)/i) ?? para.match(/^(\d+\s*[a-e]?)/i);
+  if (!paraMatch) return null;
+
+  const paragraph = paraMatch[1].replace(/\s+/g, " ").trim();
+  return { paragraph, stk };
+}
+
+/**
+ * Verify all lawReferences in a report using Tier 1 + Tier 2 only (no API calls).
+ * Mutates the lawReferences in-place, setting `verified` and `retsinformationUrl`.
+ * Returns stats: { total, verified, cached, skipped }.
+ */
+export async function verifyReportReferences(
+  areas: { issues: { lawReferences: { law: string; paragraph: string; verified?: boolean | null; retsinformationUrl?: string; isEURegulation?: boolean }[] }[] }[]
+): Promise<{ total: number; verified: number; cached: number; skipped: number }> {
+  const stats = { total: 0, verified: 0, cached: 0, skipped: 0 };
+
+  const refs: { law: string; paragraph: string; verified?: boolean | null; retsinformationUrl?: string; isEURegulation?: boolean }[] = [];
+  for (const area of areas) {
+    for (const issue of area.issues) {
+      for (const ref of issue.lawReferences) {
+        refs.push(ref);
+      }
+    }
+  }
+
+  stats.total = refs.length;
+
+  // Process all refs in parallel (all are Tier 1+2 only, so fast)
+  await Promise.all(
+    refs.map(async (ref) => {
+      // Skip EU regulations
+      if (ref.isEURegulation || /gdpr|eu.*2016|forordning/i.test(ref.law)) {
+        stats.skipped++;
+        return;
+      }
+
+      const lawId = resolveLawId(ref.law);
+      if (!lawId) {
+        stats.skipped++;
+        return;
+      }
+
+      const parsed = parseRefParagraph(ref.paragraph);
+      if (!parsed) {
+        stats.skipped++;
+        return;
+      }
+
+      const result = await verifyParagraph(lawId, parsed.paragraph, parsed.stk, { skipApiCall: true });
+      if (result.verified !== null) {
+        ref.verified = result.verified;
+        if (result.retsinformationUrl) ref.retsinformationUrl = result.retsinformationUrl;
+        stats.verified++;
+        if (result.verifiedAt) stats.cached++;
+      }
+    })
+  );
+
+  log.info(`Report verification: ${stats.verified}/${stats.total} verified, ${stats.cached} from cache, ${stats.skipped} skipped (EU/unknown)`);
+  return stats;
 }

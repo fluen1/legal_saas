@@ -265,7 +265,7 @@ async function runVerification(
   try {
     const results = await Promise.all(
       mainIds.map(async (paraId): Promise<ParagraphVerification> => {
-        const result = await verifyParagraph(lawId, paraId, stk);
+        const result = await verifyParagraph(lawId, paraId, stk, { skipApiCall: true });
         return {
           paragraph: paraId,
           stk,
