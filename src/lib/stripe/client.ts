@@ -5,7 +5,7 @@ let _stripe: Stripe | null = null;
 
 export function getStripe() {
   if (!_stripe) {
-    _stripe = new Stripe(requireEnv('STRIPE_SECRET_KEY'), {
+    _stripe = new Stripe(requireEnv('STRIPE_SECRET_KEY').trim(), {
       apiVersion: '2026-01-28.clover',
       typescript: true,
     });

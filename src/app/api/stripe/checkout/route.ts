@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Helbredstjek ikke fundet' }, { status: 404 });
     }
 
-    log.info(`Creating checkout session: tier=${tier}, priceId=${priceId}, email=${check.email}, key_prefix=${process.env.STRIPE_SECRET_KEY?.substring(0, 8)}...`);
+    log.info(`Creating checkout session: tier=${tier}, priceId=${priceId}, email=${check.email}`);
 
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     const stripeCode = (error as { type?: string; code?: string }).type ?? '';
-    log.error(`Checkout error: ${message} (type=${stripeCode}, key_prefix=${process.env.STRIPE_SECRET_KEY?.substring(0, 8)}...)`);
+    log.error(`Checkout error: ${message} (type=${stripeCode})`);
     return NextResponse.json(
       { error: 'Kunne ikke oprette betaling', detail: message },
       { status: 500 }

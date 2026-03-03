@@ -43,7 +43,7 @@ export const log = createLogger('app');
  * Use instead of `process.env.X!` to get runtime safety.
  */
 export function requireEnv(name: string): string {
-  const value = process.env[name];
+  const value = process.env[name]?.trim();
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
