@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { PRICES } from '@/config/constants';
 import type { HealthCheckReport, ReportArea } from '@/types/report';
-
-const FREE_AREA_LIMIT = 2;
 
 const STEPS: Record<string, number> = {
   pending: 0,
@@ -65,12 +64,18 @@ export async function GET(
           name: a.name,
           score: a.score,
           status: a.status,
-          issueCount: a.issues.length,
+          issues: a.issues.map((issue) => ({
+            title: issue.title,
+            risk: issue.risk,
+          })),
         })),
-        totalIssues: full.areas.reduce((sum, a) => sum + a.issues.length, 0),
-        freeAreaLimit: FREE_AREA_LIMIT,
         generatedAt: full.generatedAt,
         disclaimer: full.disclaimer,
+        paywall: true,
+        tiers: {
+          full: { price: PRICES.full.amount, currency: 'DKK', label: PRICES.full.label },
+          premium: { price: PRICES.premium.amount, currency: 'DKK', label: PRICES.premium.label },
+        },
       } as unknown as typeof data.report;
     }
 

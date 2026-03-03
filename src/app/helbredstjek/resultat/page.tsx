@@ -11,18 +11,33 @@ import { PaywallOverlay } from '@/components/report/PaywallOverlay';
 import { ReportPDF } from '@/components/report/ReportPDF';
 import { AnalysisProgress } from '@/components/report/AnalysisProgress';
 import { Disclaimer } from '@/components/shared/Disclaimer';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SCORE_COLORS } from '@/lib/utils/constants';
-import type { HealthCheckReport, ReportArea, ScoreLevel } from '@/types/report';
+import { SCORE_COLORS, RISK_LABELS } from '@/lib/utils/constants';
+import type { HealthCheckReport, ReportArea, ScoreLevel, RiskLevel } from '@/types/report';
 import { countIssuesByRisk } from '@/lib/utils/helpers';
+
+interface FreeIssue {
+  title: string;
+  risk: RiskLevel;
+}
+
+interface FreeArea {
+  name: string;
+  score: ScoreLevel;
+  status: string;
+  issues: FreeIssue[];
+}
 
 interface FreeReport {
   overallScore: ScoreLevel;
   scoreExplanation: string;
-  areas: Array<{ name: string; score: ScoreLevel; status: string; issueCount: number }>;
-  totalIssues: number;
-  freeAreaLimit?: number;
+  areas: FreeArea[];
+  paywall: boolean;
+  tiers: {
+    full: { price: number; currency: string; label: string };
+    premium: { price: number; currency: string; label: string };
+  };
 }
 
 const ALL_AREA_NAMES = [
@@ -48,6 +63,94 @@ function AreaCardSkeleton({ label }: { label: string }) {
   );
 }
 
+const RISK_PILL: Record<RiskLevel, string> = {
+  critical: 'bg-red-100 text-red-700',
+  important: 'bg-yellow-100 text-yellow-700',
+  recommended: 'bg-green-100 text-green-700',
+};
+
+const RISK_BORDER: Record<RiskLevel, string> = {
+  critical: '#EF4444',
+  important: '#F59E0B',
+  recommended: '#22C55E',
+};
+
+function LockedAreaCard({ area }: { area: FreeArea }) {
+  const color = SCORE_COLORS[area.score];
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-surface-border bg-white shadow-sm">
+      {/* Header — always visible */}
+      <div className="flex w-full items-center justify-between px-5 py-4 md:px-6">
+        <div className="flex items-center gap-3">
+          <div
+            className="size-3 shrink-0 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+          <div>
+            <h3 className="font-semibold text-text-primary">{area.name}</h3>
+            <p className="text-sm text-text-secondary">{area.status}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            className="hidden rounded-full px-3 py-0.5 text-xs font-semibold sm:inline-flex"
+            style={{ backgroundColor: `${color}15`, color }}
+          >
+            {area.score === 'green' ? 'God stand' : area.score === 'yellow' ? 'Bør forbedres' : 'Kritisk'}
+          </span>
+          {area.issues.length > 0 && (
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-text-secondary">
+              {area.issues.length} {area.issues.length === 1 ? 'mangel' : 'mangler'}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Issues — title + severity visible, rest locked */}
+      {area.issues.length > 0 && (
+        <div className="border-t border-surface-border bg-gray-50/30 px-5 py-4 md:px-6">
+          <div className="space-y-3">
+            {area.issues.map((issue, i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-surface-border bg-white"
+                style={{ borderLeftWidth: '4px', borderLeftColor: RISK_BORDER[issue.risk] }}
+              >
+                <div className="p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <h4 className="text-sm font-semibold text-text-primary">
+                      {issue.title}
+                    </h4>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${RISK_PILL[issue.risk]}`}>
+                      {RISK_LABELS[issue.risk]}
+                    </span>
+                  </div>
+                  {/* Blurred placeholder for locked content */}
+                  <div className="relative mt-2">
+                    <div className="pointer-events-none select-none blur-sm" aria-hidden="true">
+                      <p className="text-sm leading-relaxed text-text-secondary">
+                        Denne mangel kræver opmærksomhed. Se den fulde rapport for detaljeret beskrivelse, lovhenvisninger og anbefalede handlinger.
+                      </p>
+                      <div className="mt-2 flex gap-2">
+                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500">§ Lovhenvisning</span>
+                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500">§ Lovhenvisning</span>
+                      </div>
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Lock className="size-4 text-gray-400" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ResultatContent() {
   const searchParams = useSearchParams();
   const healthCheckId = searchParams.get('id');
@@ -62,8 +165,10 @@ function ResultatContent() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [partialAreas, setPartialAreas] = useState<ReportArea[]>([]);
   const [showFullReport, setShowFullReport] = useState(false);
+  const [waitingForPayment, setWaitingForPayment] = useState(false);
   const renderedAreasRef = useRef<Set<string>>(new Set());
   const partialAreasRef = useRef<ReportArea[]>([]);
+  const paymentPollCount = useRef(0);
 
   useEffect(() => {
     if (IS_TEST_MODE) {
@@ -118,17 +223,22 @@ function ResultatContent() {
 
       if (data.payment_status === 'paid') {
         setIsPaid(true);
-      }
-
-      if (data.payment_status !== 'paid' && !bypassPaywall) {
-        const stripped = data.report as unknown as FreeReport;
-        setFreeReport(stripped);
-      } else {
-        // Mark existing partial areas so they don't re-animate
         partialAreasRef.current.forEach((a) => renderedAreasRef.current.add(a.name));
         setReport(data.report as unknown as HealthCheckReport);
-        // Delay showing full report elements for smooth transition
+        setWaitingForPayment(false);
         setTimeout(() => setShowFullReport(true), 50);
+      } else if (bypassPaywall && paymentPollCount.current < 5) {
+        // After Stripe redirect: webhook may not have fired yet — poll briefly
+        paymentPollCount.current++;
+        setWaitingForPayment(true);
+        setLoading(false);
+        setTimeout(fetchReport, 2000);
+        return;
+      } else {
+        // Show free report (or give up waiting for payment)
+        setWaitingForPayment(false);
+        const stripped = data.report as unknown as FreeReport;
+        setFreeReport(stripped);
       }
     } catch {
       setError('Noget gik galt');
@@ -154,6 +264,23 @@ function ResultatContent() {
     renderedAreasRef.current.add(name);
     return true;
   };
+
+  // Waiting for Stripe webhook to confirm payment
+  if (waitingForPayment) {
+    return (
+      <main className="flex min-h-[60vh] items-center justify-center bg-off-white px-6 py-12">
+        <div className="text-center">
+          <Loader2 className="mx-auto size-10 animate-spin text-deep-blue" />
+          <p className="mt-4 font-serif text-lg text-text-primary">
+            Bekræfter betaling...
+          </p>
+          <p className="mt-2 text-sm text-text-secondary">
+            Et øjeblik, vi låser op for din rapport
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   // Show full-screen progress only when no partial areas yet
   if (loading || (isProcessing && partialAreas.length === 0)) {
@@ -291,41 +418,31 @@ function ResultatContent() {
 
   /* ── Free report with paywall ── */
   if (freeReport) {
+    const totalIssues = freeReport.areas.reduce((sum, a) => sum + a.issues.length, 0);
+    const issueCounts = {
+      critical: freeReport.areas.reduce((sum, a) => sum + a.issues.filter((i) => i.risk === 'critical').length, 0),
+      important: freeReport.areas.reduce((sum, a) => sum + a.issues.filter((i) => i.risk === 'important').length, 0),
+      recommended: freeReport.areas.reduce((sum, a) => sum + a.issues.filter((i) => i.risk === 'recommended').length, 0),
+    };
+
     return (
       <main className="min-h-screen bg-off-white">
         <div className="mx-auto max-w-[900px] px-6 py-8 md:px-12">
           <ReportHeader
             overallScore={freeReport.overallScore}
             scoreExplanation={freeReport.scoreExplanation}
-            issueCount={{ critical: 0, important: 0, recommended: freeReport.totalIssues }}
+            issueCount={issueCounts}
           />
 
-          {/* Visible free areas */}
+          {/* All areas with locked issues */}
           <div className="mt-8 space-y-4">
-            {freeReport.areas.slice(0, freeReport.freeAreaLimit ?? 2).map((area, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded-xl border border-surface-border bg-white px-5 py-4 shadow-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="size-3 rounded-full"
-                    style={{ backgroundColor: SCORE_COLORS[area.score] }}
-                  />
-                  <div>
-                    <p className="font-semibold text-text-primary">{area.name}</p>
-                    <p className="text-sm text-text-secondary">{area.status}</p>
-                  </div>
-                </div>
-                <span className="text-sm text-text-secondary">
-                  {area.issueCount} {area.issueCount === 1 ? 'mangel' : 'mangler'}
-                </span>
-              </div>
+            {freeReport.areas.map((area, i) => (
+              <LockedAreaCard key={i} area={area} />
             ))}
           </div>
 
-          {/* Paywall */}
-          <div className="mt-4">
+          {/* Paywall CTA */}
+          <div className="mt-6">
             <PaywallOverlay healthCheckId={healthCheckId!} />
           </div>
 
