@@ -2,7 +2,7 @@
  * Maps VerifiedReport (multi-agent output) to HealthCheckReport (existing UI format).
  */
 
-import type { VerifiedReport, SpecialistIssue, LawReference } from "./agents/types";
+import type { VerifiedReport, SpecialistAnalysis, SpecialistIssue, LawReference } from "./agents/types";
 import type { HealthCheckReport, ReportArea, ReportIssue, ActionItem } from "@/types/report";
 import type { ScoreLevel } from "@/types/report";
 
@@ -35,19 +35,22 @@ function mapIssue(issue: SpecialistIssue): ReportIssue {
   };
 }
 
+/** Map a single specialist analysis to the UI ReportArea format. */
+export function mapSpecialistToReportArea(analysis: SpecialistAnalysis): ReportArea {
+  return {
+    name: analysis.areaName,
+    score: scoreToLevel(analysis.score),
+    status: analysis.summary,
+    issues: analysis.issues.map(mapIssue),
+  };
+}
+
 export function mapVerifiedReportToHealthCheck(verified: VerifiedReport): HealthCheckReport {
   const { report } = verified;
   return {
     overallScore: report.scoreLevel,
     scoreExplanation: report.scoreSummary,
-    areas: report.areas.map(
-      (a): ReportArea => ({
-        name: a.areaName,
-        score: scoreToLevel(a.score),
-        status: a.summary,
-        issues: a.issues.map(mapIssue),
-      })
-    ),
+    areas: report.areas.map(mapSpecialistToReportArea),
     actionPlan: report.actionPlan.map(
       (item): ActionItem => ({
         priority: item.priority,

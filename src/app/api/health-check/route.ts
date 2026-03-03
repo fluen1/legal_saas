@@ -11,7 +11,7 @@ import { parseClaudeJSON } from '@/lib/ai/json-extraction';
 import { sendWelcomeReportEmail } from '@/lib/email/resend';
 import { sendAdminAlert } from '@/lib/email/admin-alert';
 import { runHealthCheckPipeline } from '@/lib/ai/pipeline';
-import { mapVerifiedReportToHealthCheck } from '@/lib/ai/map-verified-to-report';
+import { mapVerifiedReportToHealthCheck, mapSpecialistToReportArea } from '@/lib/ai/map-verified-to-report';
 import { WizardAnswers } from '@/types/wizard';
 import type { HealthCheckReport } from '@/types/report';
 import { WizardAnswersSchema } from '@/lib/validation/wizard-answers';
@@ -84,11 +84,34 @@ async function runPipelineBackground(
       );
 
       const verified = await Promise.race([
-        runHealthCheckPipeline(answers, email, async (status, step) => {
+        runHealthCheckPipeline(answers, email, async (status, step, partialData) => {
           await updateHealthCheck(supabase, checkId, {
             analysis_status: status,
             analysis_step: step,
           });
+
+          if (partialData?.area) {
+            const mapped = mapSpecialistToReportArea(partialData.area);
+            const { data: current } = await supabase
+              .from('health_checks')
+              .select('partial_results')
+              .eq('id', checkId)
+              .single();
+
+            const existing = (current?.partial_results as Record<string, unknown>) ?? { completedAreas: [], areas: [] };
+            const completedAreas = (existing.completedAreas as string[]) ?? [];
+            const areas = (existing.areas as unknown[]) ?? [];
+            completedAreas.push(partialData.area.area);
+            areas.push(mapped);
+
+            await updateHealthCheck(supabase, checkId, {
+              partial_results: {
+                completedAreas,
+                areas,
+                updatedAt: new Date().toISOString(),
+              },
+            });
+          }
         }),
         timeoutPromise,
       ]);

@@ -32,10 +32,14 @@ const MAX_CONSECUTIVE_ERRORS = 3;
 interface AnalysisProgressProps {
   healthCheckId: string;
   pollInterval?: number;
+  compact?: boolean;
+  onProgressUpdate?: (data: { progress: number; step: string; completedAreas: number }) => void;
 }
 
-export function AnalysisProgress({ healthCheckId, pollInterval = 3000 }: AnalysisProgressProps) {
+export function AnalysisProgress({ healthCheckId, pollInterval = 3000, compact, onProgressUpdate }: AnalysisProgressProps) {
   const [progress, setProgress] = useState(0);
+  const [step, setStep] = useState('');
+  const [completedCount, setCompletedCount] = useState(0);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<'timeout' | 'network' | 'failed' | null>(null);
   const pollCount = useRef(0);
@@ -70,6 +74,9 @@ export function AnalysisProgress({ healthCheckId, pollInterval = 3000 }: Analysi
 
         const p = data.progress ?? 0;
         setProgress((prev) => Math.max(prev, p));
+        setStep(data.step ?? '');
+        setCompletedCount(data.completedAreas ?? 0);
+        onProgressUpdate?.({ progress: p, step: data.step ?? '', completedAreas: data.completedAreas ?? 0 });
 
         if (data.analysisStatus === 'error' || data.status === 'failed') {
           setError('failed');
@@ -99,7 +106,7 @@ export function AnalysisProgress({ healthCheckId, pollInterval = 3000 }: Analysi
     poll();
 
     return () => clearInterval(interval);
-  }, [healthCheckId, pollInterval]);
+  }, [healthCheckId, pollInterval, onProgressUpdate]);
 
   const currentStepIndex = STEPS.findIndex((s) => progress < s.threshold);
 
@@ -139,6 +146,25 @@ export function AnalysisProgress({ healthCheckId, pollInterval = 3000 }: Analysi
               Genindlæs side
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <div className="rounded-lg border border-surface-border bg-white px-5 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-text-primary">
+            {completedCount}/5 områder analyseret
+          </span>
+          <span className="text-xs text-text-secondary">{step}</span>
+        </div>
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+          <div
+            className="h-full bg-blue-600 transition-all duration-500"
+            style={{ width: `${Math.round(progress * 100)}%` }}
+          />
         </div>
       </div>
     );

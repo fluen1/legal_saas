@@ -16,7 +16,11 @@ import { createLogger } from "@/lib/logger";
 
 const log = createLogger("pipeline");
 
-export type PipelineStatusCallback = (status: string, step: string) => Promise<void>;
+export type PipelineStatusCallback = (
+  status: string,
+  step: string,
+  partialData?: { area: SpecialistAnalysis }
+) => Promise<void>;
 
 export interface PipelineTimings {
   profile: number;
@@ -114,6 +118,11 @@ export async function runHealthCheckPipeline(
       timings.specialists[config.name] = (Date.now() - start) / 1000;
       specialistResults[index] = result;
       log.info(`Specialist ${config.name} completed in ${timings.specialists[config.name].toFixed(1)}s`);
+      await onStatus?.(
+        `specialist_done_${config.id}`,
+        `${config.name} færdig`,
+        { area: result }
+      );
     } catch (err) {
       timings.specialists[config.name] = (Date.now() - start) / 1000;
       const errMsg = err instanceof Error ? err.message : String(err);

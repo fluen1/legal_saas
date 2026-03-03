@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/shared/Header';
 import { Footer } from '@/components/shared/Footer';
@@ -25,9 +25,28 @@ interface FreeReport {
   freeAreaLimit?: number;
 }
 
+const ALL_AREA_NAMES = [
+  'GDPR & Persondata',
+  'Ansættelsesret',
+  'Selskabsret & Governance',
+  'Kontrakter & Kommercielle Aftaler',
+  'IP & Immaterielle Rettigheder',
+];
+
 const IS_TEST_MODE =
   typeof window !== 'undefined' &&
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_');
+
+function AreaCardSkeleton({ label }: { label: string }) {
+  return (
+    <div className="rounded-xl border border-surface-border bg-white px-5 py-4 shadow-sm opacity-40">
+      <div className="flex items-center gap-3">
+        <Loader2 className="size-4 animate-spin text-gray-400" />
+        <span className="text-sm text-gray-400">{label}</span>
+      </div>
+    </div>
+  );
+}
 
 function ResultatContent() {
   const searchParams = useSearchParams();
@@ -41,6 +60,9 @@ function ResultatContent() {
   const [freeReport, setFreeReport] = useState<FreeReport | null>(null);
   const [isPaid, setIsPaid] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [partialAreas, setPartialAreas] = useState<ReportArea[]>([]);
+  const [showFullReport, setShowFullReport] = useState(false);
+  const renderedAreasRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (IS_TEST_MODE) {
@@ -64,6 +86,19 @@ function ResultatContent() {
       if (data.status === 'processing') {
         setIsProcessing(true);
         setLoading(false);
+
+        // Update partial areas (only add new ones)
+        if (data.partialAreas?.length > 0) {
+          setPartialAreas((prev) => {
+            const existingNames = new Set(prev.map((a: ReportArea) => a.name));
+            const newAreas = (data.partialAreas as ReportArea[]).filter(
+              (a: ReportArea) => !existingNames.has(a.name)
+            );
+            if (newAreas.length === 0) return prev;
+            return [...prev, ...newAreas];
+          });
+        }
+
         setTimeout(fetchReport, 3000);
         return;
       }
@@ -83,11 +118,14 @@ function ResultatContent() {
       }
 
       if (data.payment_status !== 'paid' && !bypassPaywall) {
-        // Server already strips detailed data for unpaid reports
         const stripped = data.report as unknown as FreeReport;
         setFreeReport(stripped);
       } else {
+        // Mark existing partial areas so they don't re-animate
+        partialAreas.forEach((a) => renderedAreasRef.current.add(a.name));
         setReport(data.report as unknown as HealthCheckReport);
+        // Delay showing full report elements for smooth transition
+        setTimeout(() => setShowFullReport(true), 50);
       }
     } catch {
       setError('Noget gik galt');
@@ -95,7 +133,7 @@ function ResultatContent() {
     }
 
     setLoading(false);
-  }, [healthCheckId, bypassPaywall]);
+  }, [healthCheckId, bypassPaywall, partialAreas]);
 
   useEffect(() => {
     if (!healthCheckId) {
@@ -107,8 +145,15 @@ function ResultatContent() {
     fetchReport();
   }, [healthCheckId, fetchReport]);
 
-  // Show progress indicator while processing
-  if (loading || isProcessing) {
+  // Track which areas are new for animation
+  const isNewArea = (name: string) => {
+    if (renderedAreasRef.current.has(name)) return false;
+    renderedAreasRef.current.add(name);
+    return true;
+  };
+
+  // Show full-screen progress only when no partial areas yet
+  if (loading || (isProcessing && partialAreas.length === 0)) {
     return (
       <main className="flex min-h-[60vh] items-center justify-center bg-off-white px-6 py-12">
         <div className="w-full max-w-md">
@@ -125,6 +170,48 @@ function ResultatContent() {
               <p className="mt-4 font-serif text-lg text-text-primary">
                 Indlæser...
               </p>
+            </div>
+          )}
+        </div>
+      </main>
+    );
+  }
+
+  // Progressive loading: show partial areas while still processing
+  if (isProcessing && partialAreas.length > 0) {
+    const completedNames = new Set(partialAreas.map((a) => a.name));
+    const pendingNames = ALL_AREA_NAMES.filter((n) => !completedNames.has(n));
+
+    return (
+      <main className="min-h-screen bg-off-white">
+        <div className="mx-auto max-w-[900px] px-6 py-8 md:px-12">
+          {/* Compact progress bar */}
+          <AnalysisProgress
+            healthCheckId={healthCheckId!}
+            compact
+          />
+
+          {/* Completed area cards with fade-in */}
+          <div className="mt-6 space-y-4">
+            {partialAreas.map((area) => {
+              const shouldAnimate = isNewArea(area.name);
+              return (
+                <div
+                  key={area.name}
+                  className={shouldAnimate ? 'animate-in fade-in slide-in-from-bottom-2 duration-500' : ''}
+                >
+                  <AreaCard area={area} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Skeleton placeholders for pending areas */}
+          {pendingNames.length > 0 && (
+            <div className="mt-4 space-y-4">
+              {pendingNames.map((name) => (
+                <AreaCardSkeleton key={name} label={`Analyserer ${name}...`} />
+              ))}
             </div>
           )}
         </div>
@@ -151,11 +238,12 @@ function ResultatContent() {
   /* ── Paid / full report ── */
   if (report) {
     const issueCounts = countIssuesByRisk(report.areas);
+    const hadPartials = partialAreas.length > 0;
     return (
       <main className="min-h-screen bg-off-white">
         <div className="mx-auto max-w-[900px] px-6 py-8 md:px-12">
           {/* Score + download row */}
-          <div className="relative">
+          <div className={`relative ${hadPartials && showFullReport ? 'animate-in fade-in duration-500' : hadPartials ? 'opacity-0' : ''}`}>
             <ReportHeader
               overallScore={report.overallScore}
               scoreExplanation={report.scoreExplanation}
@@ -170,13 +258,22 @@ function ResultatContent() {
 
           {/* Compliance areas */}
           <div className="mt-8 space-y-4">
-            {report.areas.map((area: ReportArea, i: number) => (
-              <AreaCard key={i} area={area} />
-            ))}
+            {report.areas.map((area: ReportArea, i: number) => {
+              const wasPartial = partialAreas.some((p) => p.name === area.name);
+              const shouldAnimate = !wasPartial && hadPartials;
+              return (
+                <div
+                  key={i}
+                  className={shouldAnimate && showFullReport ? 'animate-in fade-in duration-500' : shouldAnimate ? 'opacity-0' : ''}
+                >
+                  <AreaCard area={area} />
+                </div>
+              );
+            })}
           </div>
 
           {/* Action plan */}
-          <div className="mt-8">
+          <div className={`mt-8 ${hadPartials && showFullReport ? 'animate-in fade-in duration-500' : hadPartials ? 'opacity-0' : ''}`}>
             <ActionPlan items={report.actionPlan} />
           </div>
 

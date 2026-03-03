@@ -34,7 +34,7 @@ export async function GET(
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("health_checks")
-      .select("status, analysis_status, analysis_step")
+      .select("status, analysis_status, analysis_step, partial_results")
       .eq("id", id)
       .single();
 
@@ -44,12 +44,14 @@ export async function GET(
 
     const status = (data.analysis_status as string) ?? "pending";
     const progress = STEPS[status] ?? 0;
+    const partial = data.partial_results as { completedAreas?: string[] } | null;
 
     return NextResponse.json({
       status: data.status,
       analysisStatus: status,
       step: data.analysis_step ?? "",
       progress,
+      completedAreas: partial?.completedAreas?.length ?? 0,
     });
   } catch {
     return NextResponse.json(
