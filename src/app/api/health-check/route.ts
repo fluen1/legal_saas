@@ -85,10 +85,13 @@ async function runPipelineBackground(
 
       const verified = await Promise.race([
         runHealthCheckPipeline(answers, email, async (status, step, partialData) => {
-          await updateHealthCheck(supabase, checkId, {
-            analysis_status: status,
-            analysis_step: step,
-          });
+          // Don't overwrite analysis_status with specialist_done_* (not in STEPS map)
+          if (!status.startsWith('specialist_done_')) {
+            await updateHealthCheck(supabase, checkId, {
+              analysis_status: status,
+              analysis_step: step,
+            });
+          }
 
           if (partialData?.area) {
             const mapped = mapSpecialistToReportArea(partialData.area);

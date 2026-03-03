@@ -63,6 +63,7 @@ function ResultatContent() {
   const [partialAreas, setPartialAreas] = useState<ReportArea[]>([]);
   const [showFullReport, setShowFullReport] = useState(false);
   const renderedAreasRef = useRef<Set<string>>(new Set());
+  const partialAreasRef = useRef<ReportArea[]>([]);
 
   useEffect(() => {
     if (IS_TEST_MODE) {
@@ -95,7 +96,9 @@ function ResultatContent() {
               (a: ReportArea) => !existingNames.has(a.name)
             );
             if (newAreas.length === 0) return prev;
-            return [...prev, ...newAreas];
+            const updated = [...prev, ...newAreas];
+            partialAreasRef.current = updated;
+            return updated;
           });
         }
 
@@ -122,7 +125,7 @@ function ResultatContent() {
         setFreeReport(stripped);
       } else {
         // Mark existing partial areas so they don't re-animate
-        partialAreas.forEach((a) => renderedAreasRef.current.add(a.name));
+        partialAreasRef.current.forEach((a) => renderedAreasRef.current.add(a.name));
         setReport(data.report as unknown as HealthCheckReport);
         // Delay showing full report elements for smooth transition
         setTimeout(() => setShowFullReport(true), 50);
@@ -133,7 +136,7 @@ function ResultatContent() {
     }
 
     setLoading(false);
-  }, [healthCheckId, bypassPaywall, partialAreas]);
+  }, [healthCheckId, bypassPaywall]);
 
   useEffect(() => {
     if (!healthCheckId) {
