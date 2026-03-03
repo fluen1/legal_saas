@@ -7,16 +7,18 @@ import { PRICES, WIZARD } from '@/config/constants';
 
 interface PaywallOverlayProps {
   healthCheckId: string;
+  totalIssues: number;
+  issueCounts: { critical: number; important: number; recommended: number };
 }
 
 const FULL_FEATURES = [
-  'Alle compliance-områder',
-  'Detaljerede lovhenvisninger',
-  'Prioriteret handlingsplan',
-  'PDF-download',
+  'Præcis hvilke mangler din virksomhed har',
+  'Konkrete handlingsanvisninger med tidsestimater',
+  'Prioriteret handlingsplan — hvad du skal gøre først',
+  'PDF-rapport til din rådgiver eller revisor',
 ];
 
-export function PaywallOverlay({ healthCheckId }: PaywallOverlayProps) {
+export function PaywallOverlay({ healthCheckId, totalIssues, issueCounts }: PaywallOverlayProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,82 +50,62 @@ export function PaywallOverlay({ healthCheckId }: PaywallOverlayProps) {
     }
   }
 
+  // Build subtitle with issue counts
+  const parts: string[] = [];
+  if (issueCounts.critical > 0) parts.push(`${issueCounts.critical} kritiske`);
+  if (issueCounts.important > 0) parts.push(`${issueCounts.important} vigtige`);
+  if (issueCounts.recommended > 0) parts.push(`${issueCounts.recommended} anbefalede`);
+  const issueBreakdown = parts.join(', ');
+
   return (
-    <div className="relative">
-      {/* Blurred placeholder content */}
-      <div className="pointer-events-none select-none blur-sm" aria-hidden="true">
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-xl border border-surface-border bg-white p-5">
-              <div className="flex items-center gap-3">
-                <div className="size-3 rounded-full bg-gray-200" />
-                <div>
-                  <div className="h-4 w-48 rounded bg-gray-200" />
-                  <div className="mt-1.5 h-3 w-32 rounded bg-gray-100" />
-                </div>
-              </div>
-              <div className="mt-4 space-y-2 pl-6">
-                <div className="h-3 w-full rounded bg-gray-100" />
-                <div className="h-3 w-5/6 rounded bg-gray-100" />
-                <div className="h-3 w-2/3 rounded bg-gray-100" />
-              </div>
-            </div>
-          ))}
-        </div>
+    <div className="rounded-2xl border border-surface-border bg-white p-8 text-center shadow-sm">
+      <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-deep-blue/10">
+        <Lock className="size-7 text-deep-blue" />
       </div>
 
-      {/* Overlay with gradient */}
-      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-white/40 via-white/80 to-white/95">
-        <div className="mx-4 max-w-md rounded-2xl border border-surface-border bg-white p-8 text-center shadow-xl">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-deep-blue/10">
-            <Lock className="size-7 text-deep-blue" />
-          </div>
+      <h3 className="mt-4 font-serif text-xl tracking-tight text-text-primary md:text-2xl">
+        Din analyse er klar
+      </h3>
+      <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-text-secondary">
+        Du har {totalIssues} juridiske mangler fordelt på {issueBreakdown}.
+        Se præcis hvad der er galt og få en trin-for-trin handlingsplan.
+      </p>
 
-          <h3 className="mt-4 font-serif text-xl tracking-tight text-text-primary md:text-2xl">
-            Lås op for den fulde rapport
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-            Se alle juridiske mangler, lovhenvisninger og en prioriteret
-            handlingsplan for din virksomhed.
-          </p>
+      {/* Feature list */}
+      <ul className="mx-auto mt-5 max-w-sm space-y-2 text-left text-sm">
+        {FULL_FEATURES.map((feature) => (
+          <li key={feature} className="flex items-start gap-2 text-text-primary">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-score-green" />
+            {feature}
+          </li>
+        ))}
+      </ul>
 
-          {/* Feature list */}
-          <ul className="mt-5 space-y-2 text-left text-sm">
-            {FULL_FEATURES.map((feature) => (
-              <li key={feature} className="flex items-center gap-2 text-text-primary">
-                <CheckCircle2 className="size-4 shrink-0 text-score-green" />
-                {feature}
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-6 space-y-3">
-            <Button
-              onClick={() => handleUpgrade('full')}
-              disabled={loading}
-              className="w-full gap-2 bg-deep-blue py-6 text-base font-semibold hover:bg-deep-blue/90"
-              size="lg"
-            >
-              {loading ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                `Fuld Rapport — ${PRICES.full.label}`
-              )}
-            </Button>
-            <Button
-              onClick={() => handleUpgrade('premium')}
-              disabled={loading}
-              variant="outline"
-              className="w-full gap-2 border-deep-blue/30 py-6 text-base font-semibold text-deep-blue hover:bg-deep-blue/5"
-              size="lg"
-            >
-              {`Premium + ${WIZARD.consultationMinutes} min. rådgivning — ${PRICES.premium.label}`}
-            </Button>
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
-          </div>
-        </div>
+      <div className="mx-auto mt-6 max-w-sm space-y-3">
+        <Button
+          onClick={() => handleUpgrade('full')}
+          disabled={loading}
+          className="w-full gap-2 bg-deep-blue py-6 text-base font-semibold hover:bg-deep-blue/90"
+          size="lg"
+        >
+          {loading ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            `Se den fulde analyse — ${PRICES.full.label}`
+          )}
+        </Button>
+        <Button
+          onClick={() => handleUpgrade('premium')}
+          disabled={loading}
+          variant="outline"
+          className="w-full gap-2 border-deep-blue/30 py-6 text-base font-semibold text-deep-blue hover:bg-deep-blue/5"
+          size="lg"
+        >
+          {`Inkl. ${WIZARD.consultationMinutes} min. rådgivning — ${PRICES.premium.label}`}
+        </Button>
+        {error && (
+          <p className="text-sm text-red-600">{error}</p>
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { PRICES } from '@/config/constants';
-import type { HealthCheckReport, ReportArea } from '@/types/report';
+import type { HealthCheckReport } from '@/types/report';
 
 const STEPS: Record<string, number> = {
   pending: 0,
@@ -31,7 +31,7 @@ export async function GET(
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('health_checks')
-      .select('report, tier, overall_score, status, payment_status, partial_results, analysis_status, analysis_step')
+      .select('report, tier, overall_score, status, payment_status, partial_results, analysis_status, analysis_step, answers')
       .eq('id', id)
       .single();
 
@@ -43,17 +43,17 @@ export async function GET(
     if (data.status !== 'completed' && data.status !== 'failed') {
       const analysisStatus = (data.analysis_status as string) ?? 'pending';
       const progress = STEPS[analysisStatus] ?? 0;
-      const partial = data.partial_results as { areas?: ReportArea[]; completedAreas?: string[] } | null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const partial = data.partial_results as { areas?: any[]; completedAreas?: string[] } | null;
+      const answers = data.answers as Record<string, unknown> | null;
 
-      // Defense in depth: strip partial areas to title+risk only (paywall)
-      const safeAreas = (partial?.areas ?? []).map((a) => ({
+      // Defense in depth: only expose name + score + counts (no titles, no descriptions)
+      const safeAreas = (partial?.areas ?? []).map((a: Record<string, unknown>) => ({
         name: a.name,
         score: a.score,
-        status: a.status,
-        issues: (a.issues ?? []).map((issue) => ({
-          title: issue.title,
-          risk: issue.risk,
-        })),
+        // Handle both old format (issues array) and new format (issueCount)
+        issueCount: a.issueCount ?? (Array.isArray(a.issues) ? (a.issues as unknown[]).length : 0),
+        issueSeverities: a.issueSeverities ?? { critical: 0, important: 0, recommended: 0 },
       }));
 
       return NextResponse.json({
@@ -62,27 +62,32 @@ export async function GET(
         step: data.analysis_step ?? '',
         progress,
         partialAreas: safeAreas,
+        industry: String(answers?.industry ?? ''),
       });
     }
 
-    // Server-side paywall: strip detailed data for unpaid reports
+    // Server-side paywall: strip ALL detailed data for unpaid reports
+    // Only expose: area names, score colors, issue counts, severity breakdown
     if (data.payment_status !== 'paid' && data.report) {
       const full = data.report as unknown as HealthCheckReport;
+      const answers = data.answers as Record<string, unknown> | null;
       data.report = {
         overallScore: full.overallScore,
         scoreExplanation: full.scoreExplanation,
         areas: full.areas.map((a) => ({
           name: a.name,
           score: a.score,
-          status: a.status,
-          issues: a.issues.map((issue) => ({
-            title: issue.title,
-            risk: issue.risk,
-          })),
+          issueCount: a.issues.length,
+          issueSeverities: {
+            critical: a.issues.filter((i) => i.risk === 'critical').length,
+            important: a.issues.filter((i) => i.risk === 'important').length,
+            recommended: a.issues.filter((i) => i.risk === 'recommended').length,
+          },
         })),
         generatedAt: full.generatedAt,
         disclaimer: full.disclaimer,
         paywall: true,
+        industry: String(answers?.industry ?? ''),
         tiers: {
           full: { price: PRICES.full.amount, currency: 'DKK', label: PRICES.full.label },
           premium: { price: PRICES.premium.amount, currency: 'DKK', label: PRICES.premium.label },

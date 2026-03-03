@@ -22,16 +22,19 @@ import { createLogger } from '@/lib/logger';
 const log = createLogger('Health Check');
 const USE_MULTI_AGENT = process.env.USE_MULTI_AGENT_PIPELINE === 'true';
 
-/** Strip detailed data from a ReportArea for free-tier partial results. */
+/** Strip detailed data from a ReportArea for free-tier partial results.
+ *  Only expose: name, score color, issue count, severity breakdown.
+ *  NO titles, NO descriptions, NO status text, NO law references. */
 function stripAreaForPaywall(area: ReportArea): Record<string, unknown> {
   return {
     name: area.name,
     score: area.score,
-    status: area.status,
-    issues: area.issues.map((issue) => ({
-      title: issue.title,
-      risk: issue.risk,
-    })),
+    issueCount: area.issues.length,
+    issueSeverities: {
+      critical: area.issues.filter((i) => i.risk === 'critical').length,
+      important: area.issues.filter((i) => i.risk === 'important').length,
+      recommended: area.issues.filter((i) => i.risk === 'recommended').length,
+    },
   };
 }
 

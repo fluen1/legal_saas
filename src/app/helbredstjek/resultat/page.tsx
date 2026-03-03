@@ -13,20 +13,20 @@ import { AnalysisProgress } from '@/components/report/AnalysisProgress';
 import { Disclaimer } from '@/components/shared/Disclaimer';
 import { Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SCORE_COLORS, RISK_LABELS } from '@/lib/utils/constants';
-import type { HealthCheckReport, ReportArea, ScoreLevel, RiskLevel } from '@/types/report';
+import { SCORE_COLORS } from '@/lib/utils/constants';
+import { PRICES } from '@/config/constants';
+import type { HealthCheckReport, ReportArea, ScoreLevel } from '@/types/report';
 import { countIssuesByRisk } from '@/lib/utils/helpers';
-
-interface FreeIssue {
-  title: string;
-  risk: RiskLevel;
-}
 
 interface FreeArea {
   name: string;
   score: ScoreLevel;
-  status: string;
-  issues: FreeIssue[];
+  issueCount: number;
+  issueSeverities: {
+    critical: number;
+    important: number;
+    recommended: number;
+  };
 }
 
 interface FreeReport {
@@ -34,6 +34,7 @@ interface FreeReport {
   scoreExplanation: string;
   areas: FreeArea[];
   paywall: boolean;
+  industry?: string;
   tiers: {
     full: { price: number; currency: string; label: string };
     premium: { price: number; currency: string; label: string };
@@ -63,34 +64,20 @@ function AreaCardSkeleton({ label }: { label: string }) {
   );
 }
 
-const RISK_PILL: Record<RiskLevel, string> = {
-  critical: 'bg-red-100 text-red-700',
-  important: 'bg-yellow-100 text-yellow-700',
-  recommended: 'bg-green-100 text-green-700',
-};
-
-const RISK_BORDER: Record<RiskLevel, string> = {
-  critical: '#EF4444',
-  important: '#F59E0B',
-  recommended: '#22C55E',
-};
-
-function LockedAreaCard({ area }: { area: FreeArea }) {
+function LockedAreaCard({ area, industry }: { area: FreeArea; industry?: string }) {
   const color = SCORE_COLORS[area.score];
+  const industryLabel = industry ? `${industry.toLowerCase()}-` : '';
 
   return (
     <div className="overflow-hidden rounded-xl border border-surface-border bg-white shadow-sm">
-      {/* Header — always visible */}
+      {/* Header — area name + score color + issue count */}
       <div className="flex w-full items-center justify-between px-5 py-4 md:px-6">
         <div className="flex items-center gap-3">
           <div
             className="size-3 shrink-0 rounded-full"
             style={{ backgroundColor: color }}
           />
-          <div>
-            <h3 className="font-semibold text-text-primary">{area.name}</h3>
-            <p className="text-sm text-text-secondary">{area.status}</p>
-          </div>
+          <h3 className="font-semibold text-text-primary">{area.name}</h3>
         </div>
         <div className="flex items-center gap-3">
           <span
@@ -99,54 +86,73 @@ function LockedAreaCard({ area }: { area: FreeArea }) {
           >
             {area.score === 'green' ? 'God stand' : area.score === 'yellow' ? 'Bør forbedres' : 'Kritisk'}
           </span>
-          {area.issues.length > 0 && (
+          {area.issueCount > 0 && (
             <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-text-secondary">
-              {area.issues.length} {area.issues.length === 1 ? 'mangel' : 'mangler'}
+              {area.issueCount} {area.issueCount === 1 ? 'mangel' : 'mangler'}
             </span>
           )}
         </div>
       </div>
 
-      {/* Issues — title + severity visible, rest locked */}
-      {area.issues.length > 0 && (
+      {/* Locked content — generic summary + single locked block */}
+      {area.issueCount > 0 && (
         <div className="border-t border-surface-border bg-gray-50/30 px-5 py-4 md:px-6">
-          <div className="space-y-3">
-            {area.issues.map((issue, i) => (
-              <div
-                key={i}
-                className="rounded-lg border border-surface-border bg-white"
-                style={{ borderLeftWidth: '4px', borderLeftColor: RISK_BORDER[issue.risk] }}
-              >
-                <div className="p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h4 className="text-sm font-semibold text-text-primary">
-                      {issue.title}
-                    </h4>
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${RISK_PILL[issue.risk]}`}>
-                      {RISK_LABELS[issue.risk]}
-                    </span>
-                  </div>
-                  {/* Blurred placeholder for locked content */}
-                  <div className="relative mt-2">
-                    <div className="pointer-events-none select-none blur-sm" aria-hidden="true">
-                      <p className="text-sm leading-relaxed text-text-secondary">
-                        Denne mangel kræver opmærksomhed. Se den fulde rapport for detaljeret beskrivelse, lovhenvisninger og anbefalede handlinger.
-                      </p>
-                      <div className="mt-2 flex gap-2">
-                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500">§ Lovhenvisning</span>
-                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-500">§ Lovhenvisning</span>
-                      </div>
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Lock className="size-4 text-gray-400" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <p className="text-sm leading-relaxed text-text-secondary">
+            Vi har identificeret {area.issueCount} juridiske {area.issueCount === 1 ? 'mangel' : 'mangler'} inden
+            for {area.name.toLowerCase()} for din {industryLabel}virksomhed.
+          </p>
+          <div className="mt-3 flex items-center gap-3 rounded-lg border border-surface-border bg-white px-4 py-3">
+            <Lock className="size-4 shrink-0 text-gray-400" />
+            <span className="text-sm text-gray-500">
+              {area.issueCount} {area.issueCount === 1 ? 'mangel' : 'mangler'} identificeret — lås op for detaljer
+            </span>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Compact mid-page CTA shown after 2nd area card */
+function MidPageCTA({ healthCheckId, totalIssues }: { healthCheckId: string; totalIssues: number }) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleClick() {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          healthCheckId,
+          tier: 'full',
+          successUrl: `${window.location.origin}/helbredstjek/resultat?id=${healthCheckId}&paid=true`,
+          cancelUrl: `${window.location.origin}/helbredstjek/resultat?id=${healthCheckId}`,
+        }),
+      });
+      const data = await res.json();
+      if (data.checkoutUrl) window.location.href = data.checkoutUrl;
+      else setLoading(false);
+    } catch {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-deep-blue/20 bg-deep-blue/5 px-5 py-4">
+      <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+        <p className="text-sm font-medium text-text-primary">
+          Se alle {totalIssues} mangler og din handlingsplan
+        </p>
+        <Button
+          onClick={handleClick}
+          disabled={loading}
+          className="shrink-0 gap-2 bg-deep-blue hover:bg-deep-blue/90"
+          size="sm"
+        >
+          {loading ? <Loader2 className="size-4 animate-spin" /> : `Se den fulde analyse — ${PRICES.full.label}`}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -163,11 +169,12 @@ function ResultatContent() {
   const [freeReport, setFreeReport] = useState<FreeReport | null>(null);
   const [isPaid, setIsPaid] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [partialAreas, setPartialAreas] = useState<ReportArea[]>([]);
+  const [partialAreas, setPartialAreas] = useState<FreeArea[]>([]);
+  const [industry, setIndustry] = useState('');
   const [showFullReport, setShowFullReport] = useState(false);
   const [waitingForPayment, setWaitingForPayment] = useState(false);
   const renderedAreasRef = useRef<Set<string>>(new Set());
-  const partialAreasRef = useRef<ReportArea[]>([]);
+  const partialAreasRef = useRef<FreeArea[]>([]);
   const paymentPollCount = useRef(0);
 
   useEffect(() => {
@@ -192,13 +199,14 @@ function ResultatContent() {
       if (data.status === 'processing') {
         setIsProcessing(true);
         setLoading(false);
+        if (data.industry) setIndustry(data.industry);
 
         // Update partial areas (only add new ones)
         if (data.partialAreas?.length > 0) {
           setPartialAreas((prev) => {
-            const existingNames = new Set(prev.map((a: ReportArea) => a.name));
-            const newAreas = (data.partialAreas as ReportArea[]).filter(
-              (a: ReportArea) => !existingNames.has(a.name)
+            const existingNames = new Set(prev.map((a: FreeArea) => a.name));
+            const newAreas = (data.partialAreas as FreeArea[]).filter(
+              (a: FreeArea) => !existingNames.has(a.name)
             );
             if (newAreas.length === 0) return prev;
             const updated = [...prev, ...newAreas];
@@ -227,7 +235,7 @@ function ResultatContent() {
         setReport(data.report as unknown as HealthCheckReport);
         setWaitingForPayment(false);
         setTimeout(() => setShowFullReport(true), 50);
-      } else if (bypassPaywall && paymentPollCount.current < 5) {
+      } else if (!!paid && paymentPollCount.current < 5) {
         // After Stripe redirect: webhook may not have fired yet — poll briefly
         paymentPollCount.current++;
         setWaitingForPayment(true);
@@ -320,7 +328,7 @@ function ResultatContent() {
                     key={area.name}
                     className={shouldAnimate ? 'animate-in fade-in slide-in-from-bottom-2 duration-500' : ''}
                   >
-                    <LockedAreaCard area={area as unknown as FreeArea} />
+                    <LockedAreaCard area={area} industry={industry} />
                   </div>
                 );
               })}
@@ -409,12 +417,13 @@ function ResultatContent() {
 
   /* ── Free report with paywall ── */
   if (freeReport) {
-    const totalIssues = freeReport.areas.reduce((sum, a) => sum + a.issues.length, 0);
+    const totalIssues = freeReport.areas.reduce((sum, a) => sum + a.issueCount, 0);
     const issueCounts = {
-      critical: freeReport.areas.reduce((sum, a) => sum + a.issues.filter((i) => i.risk === 'critical').length, 0),
-      important: freeReport.areas.reduce((sum, a) => sum + a.issues.filter((i) => i.risk === 'important').length, 0),
-      recommended: freeReport.areas.reduce((sum, a) => sum + a.issues.filter((i) => i.risk === 'recommended').length, 0),
+      critical: freeReport.areas.reduce((sum, a) => sum + a.issueSeverities.critical, 0),
+      important: freeReport.areas.reduce((sum, a) => sum + a.issueSeverities.important, 0),
+      recommended: freeReport.areas.reduce((sum, a) => sum + a.issueSeverities.recommended, 0),
     };
+    const freeIndustry = freeReport.industry || industry;
 
     return (
       <main className="min-h-screen bg-off-white">
@@ -425,16 +434,27 @@ function ResultatContent() {
             issueCount={issueCounts}
           />
 
-          {/* All areas with locked issues */}
+          {/* Area cards with mid-page CTA after 2nd area */}
           <div className="mt-8 space-y-4">
             {freeReport.areas.map((area, i) => (
-              <LockedAreaCard key={i} area={area} />
+              <div key={i}>
+                <LockedAreaCard area={area} industry={freeIndustry} />
+                {i === 1 && (
+                  <div className="mt-4">
+                    <MidPageCTA healthCheckId={healthCheckId!} totalIssues={totalIssues} />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
 
-          {/* Paywall CTA */}
+          {/* Full Paywall CTA */}
           <div className="mt-6">
-            <PaywallOverlay healthCheckId={healthCheckId!} />
+            <PaywallOverlay
+              healthCheckId={healthCheckId!}
+              totalIssues={totalIssues}
+              issueCounts={issueCounts}
+            />
           </div>
 
           {/* Disclaimer */}
