@@ -282,63 +282,54 @@ function ResultatContent() {
     );
   }
 
-  // Show full-screen progress only when no partial areas yet
-  if (loading || (isProcessing && partialAreas.length === 0)) {
-    return (
-      <main className="flex min-h-[60vh] items-center justify-center bg-off-white px-6 py-12">
-        <div className="w-full max-w-md">
-          {healthCheckId ? (
-            <>
-              <AnalysisProgress healthCheckId={healthCheckId} />
-              <p className="mt-4 text-center text-sm text-text-secondary">
-                Dette kan tage op til 5 minutter
-              </p>
-            </>
-          ) : (
-            <div className="text-center">
-              <Loader2 className="mx-auto size-10 animate-spin text-deep-blue" />
-              <p className="mt-4 font-serif text-lg text-text-primary">
-                Indlæser...
-              </p>
-            </div>
-          )}
-        </div>
-      </main>
-    );
-  }
+  // Unified loading: progress bar + skeletons → partial areas trickle in → done
+  if (loading || isProcessing) {
+    // No healthCheckId: brief spinner before error state kicks in
+    if (!healthCheckId) {
+      return (
+        <main className="flex min-h-[60vh] items-center justify-center bg-off-white">
+          <div className="text-center">
+            <Loader2 className="mx-auto size-10 animate-spin text-deep-blue" />
+            <p className="mt-4 font-serif text-lg text-text-primary">
+              Indlæser...
+            </p>
+          </div>
+        </main>
+      );
+    }
 
-  // Progressive loading: show partial areas while still processing
-  if (isProcessing && partialAreas.length > 0) {
     const completedNames = new Set(partialAreas.map((a) => a.name));
     const pendingNames = ALL_AREA_NAMES.filter((n) => !completedNames.has(n));
 
     return (
       <main className="min-h-screen bg-off-white">
         <div className="mx-auto max-w-[900px] px-6 py-8 md:px-12">
-          {/* Compact progress bar */}
+          {/* Compact progress bar — always shown from the start */}
           <AnalysisProgress
-            healthCheckId={healthCheckId!}
+            healthCheckId={healthCheckId}
             compact
           />
 
-          {/* Completed area cards with fade-in (locked: only title+severity) */}
-          <div className="mt-6 space-y-4">
-            {partialAreas.map((area) => {
-              const shouldAnimate = isNewArea(area.name);
-              return (
-                <div
-                  key={area.name}
-                  className={shouldAnimate ? 'animate-in fade-in slide-in-from-bottom-2 duration-500' : ''}
-                >
-                  <LockedAreaCard area={area as unknown as FreeArea} />
-                </div>
-              );
-            })}
-          </div>
+          {/* Completed area cards with fade-in */}
+          {partialAreas.length > 0 && (
+            <div className="mt-6 space-y-4">
+              {partialAreas.map((area) => {
+                const shouldAnimate = isNewArea(area.name);
+                return (
+                  <div
+                    key={area.name}
+                    className={shouldAnimate ? 'animate-in fade-in slide-in-from-bottom-2 duration-500' : ''}
+                  >
+                    <LockedAreaCard area={area as unknown as FreeArea} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Skeleton placeholders for pending areas */}
           {pendingNames.length > 0 && (
-            <div className="mt-4 space-y-4">
+            <div className={`${partialAreas.length > 0 ? 'mt-4' : 'mt-6'} space-y-4`}>
               {pendingNames.map((name) => (
                 <AreaCardSkeleton key={name} label={`Analyserer ${name}...`} />
               ))}
