@@ -321,7 +321,7 @@ function ResultatContent() {
             compact
           />
 
-          {/* Completed area cards with fade-in */}
+          {/* Completed area cards with fade-in (locked: only title+severity) */}
           <div className="mt-6 space-y-4">
             {partialAreas.map((area) => {
               const shouldAnimate = isNewArea(area.name);
@@ -330,7 +330,7 @@ function ResultatContent() {
                   key={area.name}
                   className={shouldAnimate ? 'animate-in fade-in slide-in-from-bottom-2 duration-500' : ''}
                 >
-                  <AreaCard area={area} />
+                  <LockedAreaCard area={area as unknown as FreeArea} />
                 </div>
               );
             })}

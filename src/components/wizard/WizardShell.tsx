@@ -34,6 +34,7 @@ export function WizardShell({ initialStep = 0 }: WizardShellProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showSummary, setShowSummary] = useState(false);
+  const submitCalledRef = useRef(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -92,6 +93,8 @@ export function WizardShell({ initialStep = 0 }: WizardShellProps) {
   }
 
   async function handleSubmit(email: string, consentedAt: string) {
+    if (submitCalledRef.current) return;
+    submitCalledRef.current = true;
     setSubmitting(true);
     setError('');
 
@@ -112,6 +115,7 @@ export function WizardShell({ initialStep = 0 }: WizardShellProps) {
       router.push(`/helbredstjek/resultat?id=${data.healthCheckId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Noget gik galt. Prøv igen.');
+      submitCalledRef.current = false;
     } finally {
       setSubmitting(false);
     }

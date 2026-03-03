@@ -13,7 +13,7 @@ import { sendAdminAlert } from '@/lib/email/admin-alert';
 import { runHealthCheckPipeline } from '@/lib/ai/pipeline';
 import { mapVerifiedReportToHealthCheck, mapSpecialistToReportArea } from '@/lib/ai/map-verified-to-report';
 import { WizardAnswers } from '@/types/wizard';
-import type { HealthCheckReport } from '@/types/report';
+import type { HealthCheckReport, ReportArea } from '@/types/report';
 import { WizardAnswersSchema } from '@/lib/validation/wizard-answers';
 import { rateLimit } from '@/lib/rate-limit';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -21,6 +21,19 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('Health Check');
 const USE_MULTI_AGENT = process.env.USE_MULTI_AGENT_PIPELINE === 'true';
+
+/** Strip detailed data from a ReportArea for free-tier partial results. */
+function stripAreaForPaywall(area: ReportArea): Record<string, unknown> {
+  return {
+    name: area.name,
+    score: area.score,
+    status: area.status,
+    issues: area.issues.map((issue) => ({
+      title: issue.title,
+      risk: issue.risk,
+    })),
+  };
+}
 
 interface HealthCheckRequestBody {
   answers: WizardAnswers;
@@ -95,6 +108,8 @@ async function runPipelineBackground(
 
           if (partialData?.area) {
             const mapped = mapSpecialistToReportArea(partialData.area);
+            // Always strip partial results — full data is only in the final report (paywalled separately)
+            const stripped = stripAreaForPaywall(mapped);
             const { data: current } = await supabase
               .from('health_checks')
               .select('partial_results')
@@ -105,7 +120,7 @@ async function runPipelineBackground(
             const completedAreas = (existing.completedAreas as string[]) ?? [];
             const areas = (existing.areas as unknown[]) ?? [];
             completedAreas.push(partialData.area.area);
-            areas.push(mapped);
+            areas.push(stripped);
 
             await updateHealthCheck(supabase, checkId, {
               partial_results: {
@@ -273,6 +288,23 @@ export async function POST(request: NextRequest) {
     let checkId = healthCheckId;
 
     if (!checkId) {
+      // Idempotency: if a health check for this email is already processing (created < 5 min ago), reuse it
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: existing } = await supabase
+        .from('health_checks')
+        .select('id')
+        .eq('email', email)
+        .eq('status', 'processing')
+        .gte('created_at', fiveMinAgo)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (existing) {
+        log.info(`Returning existing processing health check ${existing.id} for ${email}`);
+        return NextResponse.json({ healthCheckId: existing.id });
+      }
+
       const { data: inserted, error: insertError } = await supabase
         .from('health_checks')
         .insert({

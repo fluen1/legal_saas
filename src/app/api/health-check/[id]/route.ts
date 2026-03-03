@@ -45,12 +45,23 @@ export async function GET(
       const progress = STEPS[analysisStatus] ?? 0;
       const partial = data.partial_results as { areas?: ReportArea[]; completedAreas?: string[] } | null;
 
+      // Defense in depth: strip partial areas to title+risk only (paywall)
+      const safeAreas = (partial?.areas ?? []).map((a) => ({
+        name: a.name,
+        score: a.score,
+        status: a.status,
+        issues: (a.issues ?? []).map((issue) => ({
+          title: issue.title,
+          risk: issue.risk,
+        })),
+      }));
+
       return NextResponse.json({
         status: data.status,
         analysisStatus,
         step: data.analysis_step ?? '',
         progress,
-        partialAreas: partial?.areas ?? [],
+        partialAreas: safeAreas,
       });
     }
 
