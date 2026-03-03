@@ -1,148 +1,137 @@
 /**
- * Verifier: checks report quality and corrects errors.
- * Uses lookup_law tool to verify law references.
+ * Zero-tool-use verifier: fast quality checks via pure JSON inference.
+ * No tool_use, no API calls — just flags citation/consistency/completeness issues.
  */
 
-import { callClaudeWithToolLoop } from "@/lib/ai/claude-advanced";
-import { verifierTool } from "@/lib/ai/tools/verifier-tool";
-import { lawLookupTool } from "@/lib/ai/tools/law-lookup-tool";
-import { lookupLaw } from "@/lib/laws/lookup";
+import { callClaude } from "@/lib/ai/claude";
 import { VERIFIER_SYSTEM_PROMPT } from "@/lib/ai/prompts/verifier";
-import { VerifiedReportSchema } from "@/lib/ai/schemas/agent-output";
-import { sendAdminAlert } from "@/lib/email/admin-alert";
-import type { OrchestratorOutput, SpecialistAnalysis, VerifiedReport, VerifierModification } from "./types";
+import type { OrchestratorOutput, SpecialistAnalysis, VerifiedReport } from "./types";
 import type { WizardAnswers } from "@/types/wizard";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("verifier");
 
+interface VerifierFlags {
+  citationFlags: { area: string; law: string; paragraph: string; reason: string }[];
+  consistencyFlags: string[];
+  completenessFlags: string[];
+  qualityScore: number;
+}
+
+const VERIFIER_TIMEOUT_MS = 20_000;
+
+/** Build compact input — only the data the verifier needs */
+function buildVerifierInput(report: OrchestratorOutput, answers: WizardAnswers): string {
+  const compact = {
+    overallScore: report.overallScore,
+    scoreLevel: report.scoreLevel,
+    areas: report.areas.map((a) => ({
+      area: a.area,
+      areaName: a.areaName,
+      status: a.status,
+      score: a.score,
+      issueCount: a.issues.length,
+      issues: a.issues.map((i) => ({
+        title: i.title,
+        riskLevel: i.riskLevel,
+        confidence: i.confidence,
+        lawRefs: i.lawReferences.map((r) => ({
+          law: r.law,
+          paragraph: r.paragraph,
+          verified: r.verified ?? null,
+          isEU: r.isEURegulation,
+        })),
+      })),
+    })),
+    wizardContext: {
+      hasEmployees: answers.employee_count !== "0",
+      processesData: answers.gdpr_processes_personal_data,
+      multipleOwners: answers.multiple_owners,
+      industry: answers.industry,
+    },
+  };
+  return JSON.stringify(compact);
+}
+
+/** Extract JSON from Claude response (handles markdown fences) */
+function extractJSON(raw: string): string {
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenced) return fenced[1].trim();
+  const braceStart = raw.indexOf("{");
+  const braceEnd = raw.lastIndexOf("}");
+  if (braceStart >= 0 && braceEnd > braceStart) return raw.slice(braceStart, braceEnd + 1);
+  return raw;
+}
+
+/** Parse verifier flags from raw Claude response */
+function parseFlags(raw: string): VerifierFlags {
+  try {
+    const json = JSON.parse(extractJSON(raw));
+    return {
+      citationFlags: Array.isArray(json.citationFlags) ? json.citationFlags : [],
+      consistencyFlags: Array.isArray(json.consistencyFlags) ? json.consistencyFlags : [],
+      completenessFlags: Array.isArray(json.completenessFlags) ? json.completenessFlags : [],
+      qualityScore: typeof json.qualityScore === "number" ? Math.min(100, Math.max(0, json.qualityScore)) : 75,
+    };
+  } catch (err) {
+    log.warn(`Failed to parse verifier JSON: ${err}`);
+    return { citationFlags: [], consistencyFlags: [], completenessFlags: [], qualityScore: 70 };
+  }
+}
+
 export async function runVerifier(
   report: OrchestratorOutput,
-  analyses: SpecialistAnalysis[],
+  _analyses: SpecialistAnalysis[],
   answers: WizardAnswers
 ): Promise<VerifiedReport> {
-  const userMessage = JSON.stringify(
-    {
-      report,
-      analyses,
-      wizardAnswers: answers,
-    },
-    null,
-    2
-  );
+  const userMessage = buildVerifierInput(report, answers);
+  const start = Date.now();
 
-  const TOKEN_BUDGET = 10_000;
-  let totalTokens = 0;
-  const VERIFIER_TIMEOUT_MS = 45_000;
-
-  const verifierPromise = callClaudeWithToolLoop({
-    systemPrompt: VERIFIER_SYSTEM_PROMPT,
-    userMessage,
-    tools: [lawLookupTool, verifierTool],
-    toolChoice: { type: "any" },
-    finalToolNames: ["submit_verified_report"],
-    maxToolRounds: 2,
-    enableThinking: false,
-    maxTokens: 4096,
-    useCache: false,
-    requestContext: "verifier",
-    executeTool: async (name, input) => {
-      if (name !== "lookup_law") {
-        return JSON.stringify({ error: `Ukendt tool: ${name}` });
-      }
-      if (totalTokens >= TOKEN_BUDGET) {
-        log.warn(`Token-budget overskredet (${(totalTokens / 1000).toFixed(1)}k). Stopper nye opslag.`);
-        return JSON.stringify({
-          error: "Token-budget overskredet. Afslut med submit_verified_report nu.",
-        });
-      }
-      const params = input as { lawId?: string; paragraphs?: string };
-      const lawId = params?.lawId;
-      if (!lawId) {
-        return JSON.stringify({ error: "lawId er påkrævet" });
-      }
-      const lookupResult = await lookupLaw({
-        lawId,
-        paragraphs: params.paragraphs,
-      });
-      if (!lookupResult) {
-        return JSON.stringify({ error: `Lov ikke fundet: ${lawId}` });
-      }
-      totalTokens += lookupResult.tokenEstimate;
-      log.info(
-        `lookup_law: ${lawId}${params.paragraphs ? ` ${params.paragraphs}` : ""} (${(lookupResult.tokenEstimate / 1000).toFixed(1)}k tokens)`
-      );
-      return JSON.stringify({
-        lawId: lookupResult.lawId,
-        officialTitle: lookupResult.officialTitle,
-        shortTitle: lookupResult.shortTitle,
-        retsinformationUrl: lookupResult.retsinformationUrl,
-        content: lookupResult.content,
-        tokenEstimate: lookupResult.tokenEstimate,
-        verification: lookupResult.verification,
-      });
-    },
-  });
-
-  // Race against 45s timeout — skip verifier if it takes too long
-  let result;
   try {
-    result = await Promise.race([
-      verifierPromise,
+    const raw = await Promise.race([
+      callClaude({
+        systemPrompt: VERIFIER_SYSTEM_PROMPT,
+        userPrompt: userMessage,
+        maxTokens: 2048,
+        temperature: 0,
+      }),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Verifier timeout (45s)")), VERIFIER_TIMEOUT_MS)
+        setTimeout(() => reject(new Error("Verifier timeout (20s)")), VERIFIER_TIMEOUT_MS)
       ),
     ]);
+
+    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+    const flags = parseFlags(raw);
+
+    const warnings = [
+      ...flags.citationFlags.map(
+        (f) => `Uverificeret: ${f.law} ${f.paragraph} i ${f.area} — ${f.reason}`
+      ),
+      ...flags.consistencyFlags,
+      ...flags.completenessFlags,
+    ];
+
+    log.info(
+      `Verifier done in ${elapsed}s: quality=${flags.qualityScore}, ` +
+        `citations=${flags.citationFlags.length}, consistency=${flags.consistencyFlags.length}, ` +
+        `completeness=${flags.completenessFlags.length}`
+    );
+
+    return {
+      report,
+      qualityScore: flags.qualityScore,
+      modifications: [],
+      warnings,
+    };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    log.warn(`Verifier skipped: ${msg}`);
+    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+    log.warn(`Verifier failed in ${elapsed}s: ${msg}`);
     return {
       report,
       qualityScore: 70,
       modifications: [],
-      warnings: [`Verifier sprunget over: ${msg}`],
+      warnings: [`Verifier: ${msg}`],
     };
   }
-
-  if (result.toolUse?.name === "submit_verified_report") {
-    const input = result.toolUse.input as Record<string, unknown>;
-    const verifiedReport = (input.report ?? report) as OrchestratorOutput;
-    const mods = ((input.modifications ?? []) as unknown[]) as VerifierModification[];
-    const qs = typeof input.qualityScore === "number" ? input.qualityScore : 80;
-    const warns = Array.isArray(input.warnings) ? (input.warnings as string[]) : [];
-
-    const assembled = {
-      report: verifiedReport,
-      qualityScore: qs,
-      modifications: mods,
-      warnings: warns,
-    };
-
-    const parsed = VerifiedReportSchema.safeParse(assembled);
-
-    if (!parsed.success) {
-      const errorMsg = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n');
-      log.error(`Zod validation failed:\n${errorMsg}`);
-      sendAdminAlert(
-        'Verifier output validation failed',
-        `Zod errors:\n${errorMsg}\n\nInput keys: ${Object.keys(input).join(', ')}`
-      ).catch(() => {});
-
-      const hasAreas = Array.isArray(verifiedReport?.areas);
-      log.warn(`Using unvalidated output: areas=${hasAreas ? verifiedReport.areas.length : 0}`);
-      return Object.assign(assembled, { _metrics: result.metrics });
-    }
-
-    const validData = parsed.data;
-    log.info(`submit_verified_report: qualityScore=${validData.qualityScore}, mods=${validData.modifications.length}, warns=${validData.warnings.length}`);
-    return Object.assign(validData as VerifiedReport, { _metrics: result.metrics });
-  }
-
-  log.warn("Verifikator returnerede ikke submit_verified_report — rapport markeres som uverificeret.");
-  return {
-    report,
-    qualityScore: 0,
-    modifications: [],
-    warnings: ["Verifikator returnerede ikke struktureret output — rapport er uverificeret."],
-  };
 }

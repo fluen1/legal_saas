@@ -8,6 +8,7 @@ import { runSpecialistAgent } from "./agents/specialist";
 import { runOrchestrator } from "./agents/orchestrator";
 import { runVerifier } from "./agents/verifier";
 import { AREA_CONFIGS } from "./agents/config";
+import { verifyReportReferences } from "@/lib/laws/verify";
 import type { OrchestratorOutput, OrchestratorScoring, SpecialistAnalysis, VerifiedReport } from "./agents/types";
 import type { ToolLoopMetrics } from "./claude-advanced";
 import type { WizardAnswers } from "@/types/wizard";
@@ -165,6 +166,12 @@ export async function runHealthCheckPipeline(
   // Merge specialist areas with orchestrator scoring
   const report = mergeReport(analyses, scoring);
 
+  // ─── Step 3b: Verify law references (Tier 1+2 only, no API calls) ───
+  const verifyStart = Date.now();
+  const refStats = await verifyReportReferences(report.areas);
+  const verifyRefTime = (Date.now() - verifyStart) / 1000;
+  log.info(`Reference verification: ${refStats.verified}/${refStats.total} in ${verifyRefTime.toFixed(1)}s`);
+
   // ─── Step 4: Verifier (optional) ───
   const SKIP_VERIFIER = process.env.SKIP_VERIFIER === "true";
   let verifiedReport: VerifiedReport;
@@ -208,12 +215,11 @@ export async function runHealthCheckPipeline(
     }
   }
 
-  // Collect verifier metrics
-  const vm = (verifiedReport as unknown as { _metrics?: ToolLoopMetrics })._metrics;
-  const verifierMetrics = vm ? {
-    toolRounds: vm.toolRounds,
-    inputTokens: vm.totalInputTokens,
-    outputTokens: vm.totalOutputTokens,
+  // Verifier metrics (zero-tool-use mode — no tool loop metrics)
+  const verifierMetrics = timings.verifier > 0 ? {
+    toolRounds: 0,
+    inputTokens: 0,
+    outputTokens: 0,
   } : undefined;
 
   const pipelineMetrics: PipelineMetrics = {
