@@ -198,7 +198,7 @@ Hvad er den juridiske konsekvens, og hvad skal virksomheden konkret gøre?
 
 ## TILGÆNGELIGE LOVE
 ${lawsList}
-
+${config.gdprArticles ? `\n## GDPR-FORORDNINGEN (EU 2016/679) — NØGLEARTIKLER\n${config.gdprArticles}\nDu MÅ referere direkte til disse artikler uden lookup_law.\n` : ""}
 ## REGLER FOR LOVOPSLAG
 1. Hent ALDRIG en hel lov. Angiv ALTID specifikke paragraffer.
 2. Tænk FØRST (trin 1-2), SÅ slå op (trin 3). Aldrig omvendt.

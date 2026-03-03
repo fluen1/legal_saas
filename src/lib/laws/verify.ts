@@ -14,6 +14,17 @@ import { fetchParagraph } from "./retsinformation-api";
 const log = createLogger("verify");
 const LAWS_DIR = join(process.cwd(), "src", "data", "laws");
 
+/** Known GDPR article numbers from config.ts gdprArticles (verifiable without Retsinformation) */
+const KNOWN_GDPR_ARTICLES = new Set([
+  5, 6, 7, 9,
+  12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+  24, 25, 28, 30, 32, 33, 34, 35, 36, 37, 38, 39,
+  44, 45, 46, 47, 48, 49,
+  83,
+]);
+
+const EUR_LEX_GDPR_URL = "https://eur-lex.europa.eu/legal-content/DA/TXT/?uri=CELEX%3A32016R0679";
+
 export interface VerificationResult {
   verified: boolean | null;
   verifiedAt: string | null;
@@ -314,9 +325,19 @@ export async function verifyReportReferences(
   // Process all refs in parallel (all are Tier 1+2 only, so fast)
   await Promise.all(
     refs.map(async (ref) => {
-      // Skip EU regulations
+      // EU regulations: verify against known GDPR articles instead of Retsinformation
       if (ref.isEURegulation || /gdpr|eu.*2016|forordning/i.test(ref.law)) {
-        stats.skipped++;
+        ref.isEURegulation = true;
+        const articleMatch = ref.paragraph?.match(/(?:art(?:ikel)?\.?\s*)(\d+)/i);
+        if (articleMatch) {
+          const articleNum = parseInt(articleMatch[1], 10);
+          if (KNOWN_GDPR_ARTICLES.has(articleNum)) {
+            ref.verified = true;
+            ref.retsinformationUrl = EUR_LEX_GDPR_URL;
+            stats.verified++;
+          }
+          // If not in known list, leave verified as-is (null) — model may still be correct
+        }
         return;
       }
 

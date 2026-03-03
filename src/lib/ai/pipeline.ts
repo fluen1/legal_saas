@@ -151,6 +151,9 @@ export async function runHealthCheckPipeline(
   // If we have partial results, build placeholder analyses for missing areas
   const analyses = buildCompleteAnalyses(specialistResults, completedAnalyses, specialistErrors);
 
+  // Post-process: ensure isEURegulation is set on all GDPR/EU law references
+  normalizeEURegulationFlags(analyses);
+
   // ─── Step 3: Orchestrator ───
   if (!hasTime()) {
     log.warn("Skipping orchestrator — insufficient time remaining");
@@ -231,6 +234,20 @@ export async function runHealthCheckPipeline(
   };
 
   return Object.assign(verifiedReport, { _timings: timings, _metrics: pipelineMetrics });
+}
+
+/** Post-process: force isEURegulation = true on any GDPR/EU law references */
+function normalizeEURegulationFlags(analyses: SpecialistAnalysis[]): void {
+  const EU_PATTERN = /gdpr|eu.*2016|forordning/i;
+  for (const analysis of analyses) {
+    for (const issue of analysis.issues ?? []) {
+      for (const ref of issue.lawReferences ?? []) {
+        if (EU_PATTERN.test(ref.law)) {
+          ref.isEURegulation = true;
+        }
+      }
+    }
+  }
 }
 
 /** Fill in missing specialist analyses with placeholder data */
