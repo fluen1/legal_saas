@@ -7,6 +7,8 @@ export interface LawReference {
   description: string;
   url: string;
   verified?: boolean | null;
+  isEURegulation?: boolean;
+  retsinformationUrl?: string;
 }
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low';

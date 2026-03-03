@@ -12,13 +12,15 @@ function scoreToLevel(score: number): ScoreLevel {
   return "red";
 }
 
-function mapLawRef(ref: LawReference): { law: string; paragraph: string; description: string; url: string; verified?: boolean | null } {
+function mapLawRef(ref: LawReference): { law: string; paragraph: string; description: string; url: string; verified?: boolean | null; isEURegulation?: boolean; retsinformationUrl?: string } {
   return {
     law: ref.law,
     paragraph: ref.stk ? `${ref.paragraph}, ${ref.stk}` : ref.paragraph,
     description: ref.description,
     url: ref.url,
     verified: ref.verified ?? null,
+    ...(ref.isEURegulation != null && { isEURegulation: ref.isEURegulation }),
+    ...(ref.retsinformationUrl != null && { retsinformationUrl: ref.retsinformationUrl }),
   };
 }
 
