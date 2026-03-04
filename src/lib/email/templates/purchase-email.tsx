@@ -1,229 +1,72 @@
-import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Heading,
-  Hr,
-  Html,
-  Preview,
-  Section,
-  Text,
-} from '@react-email/components';
+import { Text, Link, Hr } from '@react-email/components';
+import { EmailLayout, CTAButton, BRAND } from './_layout';
 
 interface PurchaseEmailProps {
   name?: string;
-  reportUrl: string;
-  pdfUrl: string;
+  email: string;
+  reportId: string;
   tier: 'full' | 'premium';
-  amount: number;
+  amount: number; // i kr (allerede divideret fra Stripe ører)
+  unsubscribeUrl: string;
 }
 
-const TIER_LABELS: Record<string, string> = {
-  full: 'Fuld Rapport',
-  premium: 'Premium Rapport',
-};
-
-export function PurchaseEmail({
-  name,
-  reportUrl,
-  pdfUrl,
-  tier,
-  amount,
-}: PurchaseEmailProps) {
+export function PurchaseEmail({ name, email, reportId, tier, amount, unsubscribeUrl }: PurchaseEmailProps) {
   const greeting = name ? `Hej ${name}` : 'Hej';
-  const isPremium = tier === 'premium';
-  const tierLabel = TIER_LABELS[tier] || 'Fuld Rapport';
+  const reportUrl = `https://retsklar.dk/helbredstjek/resultat?id=${reportId}`;
+  const pdfUrl = `https://retsklar.dk/api/report/${reportId}/pdf`;
+  const tierLabel = tier === 'premium' ? 'Premium (inkl. personlig opfølgning)' : 'Fuld rapport';
+  const amountDKK = amount;
 
   return (
-    <Html>
-      <Head />
-      <Preview>Din fulde rapport er klar — Retsklar</Preview>
-      <Body style={body}>
-        <Container style={container}>
-          <Section style={header}>
-            <Heading style={headerTitle}>Retsklar</Heading>
-          </Section>
+    <EmailLayout preview={`Kvittering — ${tierLabel} — ${amountDKK} kr.`} unsubscribeUrl={unsubscribeUrl}>
+      <Text style={{ fontSize: '22px', fontWeight: 'bold', color: BRAND.text, marginBottom: '8px' }}>
+        {greeting},
+      </Text>
+      <Text style={{ fontSize: '15px', color: BRAND.text, lineHeight: '1.6' }}>
+        Tak for dit køb. Din rapport er klar til dig.
+      </Text>
 
-          <Section style={content}>
-            <Heading as="h2" style={heading}>
-              {greeting},
-            </Heading>
+      {/* Kvitterings-boks */}
+      <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '6px', padding: '20px 24px', margin: '16px 0' }}>
+        <Text style={{ fontWeight: 'bold', color: BRAND.green, fontSize: '15px', marginTop: 0, marginBottom: '12px' }}>
+          {'✓ Betaling bekræftet'}
+        </Text>
+        <Text style={{ color: BRAND.text, fontSize: '14px', margin: '4px 0' }}>
+          <strong>Produkt:</strong> {tierLabel}
+        </Text>
+        <Text style={{ color: BRAND.text, fontSize: '14px', margin: '4px 0' }}>
+          <strong>Beløb:</strong> {amountDKK} kr. inkl. moms
+        </Text>
+        <Text style={{ color: BRAND.text, fontSize: '14px', margin: '4px 0' }}>
+          <strong>Email:</strong> {email}
+        </Text>
+      </div>
 
-            <Text style={paragraph}>
-              Tak for dit køb. Din fulde juridiske rapport er nu tilgængelig.
-            </Text>
+      <CTAButton href={reportUrl}>Se din fulde rapport</CTAButton>
 
-            <Section style={receiptSection}>
-              <Text style={receiptLabel}>Kvittering</Text>
-              <Text style={receiptItem}>
-                <strong>{tierLabel}</strong> — {amount} kr
-              </Text>
-            </Section>
+      <Text style={{ textAlign: 'center', margin: '0 0 24px 0' }}>
+        <Link href={pdfUrl} style={{ color: BRAND.accent, fontSize: '14px' }}>
+          Download som PDF
+        </Link>
+      </Text>
 
-            <Section style={buttonRow}>
-              <Button style={primaryButton} href={reportUrl}>
-                Se din rapport
-              </Button>
-            </Section>
+      {tier === 'premium' && (
+        <div style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: '6px', padding: '20px 24px', margin: '8px 0 24px 0' }}>
+          <Text style={{ fontWeight: 'bold', color: '#C2410C', fontSize: '15px', marginTop: 0, marginBottom: '8px' }}>
+            Personlig opfølgning — næste skridt
+          </Text>
+          <Text style={{ color: BRAND.text, fontSize: '14px', lineHeight: '1.6', marginBottom: 0 }}>
+            Vi kontakter dig inden for 1 hverdag på denne email for at aftale din personlige juridiske gennemgang.
+          </Text>
+        </div>
+      )}
 
-            <Section style={buttonRow}>
-              <Button style={secondaryButton} href={pdfUrl}>
-                Download PDF
-              </Button>
-            </Section>
-
-            {isPremium && (
-              <>
-                <Hr style={divider} />
-                <Section style={premiumNotice}>
-                  <Heading as="h3" style={premiumHeading}>
-                    Personlig opfølgning
-                  </Heading>
-                  <Text style={paragraph}>
-                    Som Premium-kunde kontakter vi dig inden for 24 timer for at
-                    aftale din personlige opfølgning med en af vores juridiske
-                    rådgivere.
-                  </Text>
-                </Section>
-              </>
-            )}
-          </Section>
-
-          <Section style={footer}>
-            <Text style={footerText}>
-              © {new Date().getFullYear()} Retsklar.dk — Alle rettigheder
-              forbeholdes.
-            </Text>
-          </Section>
-        </Container>
-      </Body>
-    </Html>
+      <Hr style={{ borderColor: '#E2E8F0', margin: '24px 0 16px 0' }} />
+      <Text style={{ fontSize: '13px', color: BRAND.muted, lineHeight: '1.6' }}>
+        Gem denne email som dokumentation for dit køb. Har du spørgsmål? Svar direkte her.
+      </Text>
+    </EmailLayout>
   );
 }
-
-const body = {
-  backgroundColor: '#f4f4f5',
-  fontFamily:
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-  margin: '0',
-  padding: '0',
-};
-
-const container = {
-  maxWidth: '600px',
-  margin: '0 auto',
-  backgroundColor: '#ffffff',
-};
-
-const header = {
-  backgroundColor: '#1E3A5F',
-  padding: '24px 32px',
-  textAlign: 'center' as const,
-};
-
-const headerTitle = {
-  color: '#ffffff',
-  fontSize: '24px',
-  fontWeight: '700' as const,
-  margin: '0',
-};
-
-const content = {
-  padding: '32px',
-};
-
-const heading = {
-  fontSize: '22px',
-  color: '#1E3A5F',
-  margin: '0 0 16px',
-};
-
-const paragraph = {
-  fontSize: '16px',
-  lineHeight: '1.6',
-  color: '#374151',
-  margin: '0 0 16px',
-};
-
-const receiptSection = {
-  backgroundColor: '#f0fdf4',
-  borderRadius: '12px',
-  padding: '20px 24px',
-  border: '1px solid #bbf7d0',
-  margin: '24px 0',
-};
-
-const receiptLabel = {
-  fontSize: '12px',
-  color: '#6b7280',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '1px',
-  margin: '0 0 8px',
-};
-
-const receiptItem = {
-  fontSize: '18px',
-  color: '#1E3A5F',
-  margin: '0',
-};
-
-const buttonRow = {
-  textAlign: 'center' as const,
-  margin: '16px 0',
-};
-
-const primaryButton = {
-  backgroundColor: '#1E3A5F',
-  color: '#ffffff',
-  fontSize: '16px',
-  fontWeight: '600' as const,
-  padding: '14px 32px',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  display: 'inline-block',
-};
-
-const secondaryButton = {
-  backgroundColor: '#ffffff',
-  color: '#1E3A5F',
-  fontSize: '14px',
-  fontWeight: '600' as const,
-  padding: '12px 24px',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  display: 'inline-block',
-  border: '2px solid #1E3A5F',
-};
-
-const divider = {
-  borderColor: '#e5e7eb',
-  margin: '32px 0',
-};
-
-const premiumNotice = {
-  backgroundColor: '#fefce8',
-  borderRadius: '12px',
-  padding: '20px 24px',
-  border: '1px solid #fde68a',
-};
-
-const premiumHeading = {
-  fontSize: '18px',
-  color: '#92400e',
-  margin: '0 0 8px',
-};
-
-const footer = {
-  padding: '24px 32px',
-  textAlign: 'center' as const,
-  backgroundColor: '#f9fafb',
-};
-
-const footerText = {
-  fontSize: '13px',
-  color: '#9ca3af',
-  margin: '0 0 4px',
-};
 
 export default PurchaseEmail;

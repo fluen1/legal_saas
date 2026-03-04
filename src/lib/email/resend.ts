@@ -2,9 +2,16 @@ import { Resend } from 'resend';
 import { render } from '@react-email/components';
 import { WelcomeEmail } from './templates/welcome-email';
 import { PurchaseEmail } from './templates/purchase-email';
+import { Nurture1Findings } from './templates/nurture-1-findings';
+import { Nurture2Shareholder } from './templates/nurture-2-shareholder';
+import { Nurture3Value } from './templates/nurture-3-value';
+import { Nurture4Knowledge } from './templates/nurture-4-knowledge';
+import { Nurture5Final } from './templates/nurture-5-final';
 import { buildUnsubscribeUrl } from './unsubscribe';
 import { EMAILS } from '@/config/constants';
 import { createLogger, requireEnv } from '@/lib/logger';
+
+const log = createLogger('Email');
 
 const VERIFIED_FROM = EMAILS.from;
 const FALLBACK_FROM = EMAILS.fallbackFrom;
@@ -19,12 +26,6 @@ function getResend() {
   return _resend;
 }
 
-function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-}
-
-const log = createLogger('Email');
-
 function unsubscribeHeaders(email: string): Record<string, string> {
   const url = buildUnsubscribeUrl(email);
   return {
@@ -38,9 +39,8 @@ async function safeSend(params: Parameters<Resend['emails']['send']>[0]) {
     const result = await getResend().emails.send(params);
     if (result.error) {
       if (result.error.message?.includes('not verified')) {
-        log.warn('Domæne ikke verificeret — bruger Resend default afsender. Verificér domænet i Resend dashboard.');
-        const fallbackParams = { ...params, from: FALLBACK_FROM };
-        const fallbackResult = await getResend().emails.send(fallbackParams);
+        log.warn('Domæne ikke verificeret — bruger Resend default afsender.');
+        const fallbackResult = await getResend().emails.send({ ...params, from: FALLBACK_FROM });
         if (fallbackResult.error) {
           log.error('Fallback send fejlede:', fallbackResult.error);
           return fallbackResult;
@@ -59,7 +59,7 @@ async function safeSend(params: Parameters<Resend['emails']['send']>[0]) {
   }
 }
 
-// ─── Flow 1: Velkomst-email efter wizard (gratis bruger) ───
+// ─── Flow 1: Velkomst-email (gratis bruger) ─────────────────────────────────
 
 type ScoreLevel = 'red' | 'yellow' | 'green';
 
@@ -78,26 +78,22 @@ export async function sendWelcomeReportEmail({
   issueCount,
   name,
 }: WelcomeEmailParams) {
-  const appUrl = getAppUrl();
-  const reportUrl = `${appUrl}/helbredstjek/resultat?id=${reportId}`;
-  const upsellUrl = reportUrl;
   const unsubscribeUrl = buildUnsubscribeUrl(to);
-
   const html = await render(
-    WelcomeEmail({ name, reportUrl, score, issueCount, upsellUrl, unsubscribeUrl })
+    WelcomeEmail({ name, reportId, scoreLevel: score, issueCount, unsubscribeUrl })
   );
 
   return safeSend({
     from: VERIFIED_FROM,
     replyTo: REPLY_TO,
     to,
-    subject: 'Din Retsklar-rapport er klar',
+    subject: `Din Retsklar-rapport er klar${name ? `, ${name}` : ''}`,
     html,
     headers: unsubscribeHeaders(to),
   });
 }
 
-// ─── Flow 2: Kvittering + rapport-link efter betaling ───
+// ─── Flow 2: Kvittering (betaling) ──────────────────────────────────────────
 
 interface PurchaseEmailParams {
   to: string;
@@ -114,25 +110,88 @@ export async function sendPurchaseEmail({
   amount,
   name,
 }: PurchaseEmailParams) {
-  const appUrl = getAppUrl();
-  const reportUrl = `${appUrl}/helbredstjek/resultat?id=${reportId}`;
-  const pdfUrl = `${appUrl}/api/report/${reportId}/pdf`;
-
+  const unsubscribeUrl = buildUnsubscribeUrl(to);
   const html = await render(
-    PurchaseEmail({ name, reportUrl, pdfUrl, tier, amount })
+    PurchaseEmail({ name, email: to, reportId, tier, amount, unsubscribeUrl })
   );
 
   return safeSend({
     from: VERIFIED_FROM,
     replyTo: REPLY_TO,
     to,
-    subject: 'Din fulde rapport er klar — Retsklar',
+    subject: 'Kvittering og adgang til din rapport — Retsklar',
     html,
     headers: unsubscribeHeaders(to),
   });
 }
 
-// ─── Eksisterende: Waitlist velkomst-email ───
+// ─── Nurture-sekvens ─────────────────────────────────────────────────────────
+
+export type NurtureParams = {
+  to: string;
+  name?: string;
+  reportId: string;
+  scoreLevel: ScoreLevel;
+  issueCount: number;
+  step: 1 | 2 | 3 | 4 | 5;
+};
+
+const NURTURE_SUBJECTS: Record<number, string> = {
+  1: '3 juridiske huller vi fandt i din rapport',
+  2: 'Hvad sker der uden en ejeraftale?',
+  3: 'Sådan ser det ud 6 måneder inde',
+  4: 'Ansættelsesbevisloven 2026 — tjekliste',
+  5: 'Din rapport fra Retsklar',
+};
+
+/**
+ * Intervals in days for each nurture email step.
+ * Step 1 = day 2, step 2 = day 5, step 3 = day 8, step 4 = day 12, step 5 = day 16
+ */
+export const NURTURE_INTERVALS_DAYS = [0, 2, 5, 8, 12, 16];
+
+export function getNextSendDate(currentStep: number): Date {
+  const nextStep = currentStep + 1;
+  if (nextStep > 5) return new Date();
+  const days = NURTURE_INTERVALS_DAYS[nextStep] - NURTURE_INTERVALS_DAYS[currentStep] || 3;
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+}
+
+export async function sendNurtureEmail(params: NurtureParams) {
+  const unsubscribeUrl = buildUnsubscribeUrl(params.to);
+  let html: string;
+
+  switch (params.step) {
+    case 1:
+      html = await render(Nurture1Findings({ name: params.name, reportId: params.reportId, scoreLevel: params.scoreLevel, issueCount: params.issueCount, unsubscribeUrl }));
+      break;
+    case 2:
+      html = await render(Nurture2Shareholder({ name: params.name, reportId: params.reportId, unsubscribeUrl }));
+      break;
+    case 3:
+      html = await render(Nurture3Value({ name: params.name, reportId: params.reportId, issueCount: params.issueCount, unsubscribeUrl }));
+      break;
+    case 4:
+      html = await render(Nurture4Knowledge({ name: params.name, reportId: params.reportId, unsubscribeUrl }));
+      break;
+    case 5:
+      html = await render(Nurture5Final({ name: params.name, reportId: params.reportId, scoreLevel: params.scoreLevel, issueCount: params.issueCount, unsubscribeUrl }));
+      break;
+    default:
+      throw new Error(`Ukendt nurture step: ${params.step}`);
+  }
+
+  return safeSend({
+    from: VERIFIED_FROM,
+    replyTo: REPLY_TO,
+    to: params.to,
+    subject: NURTURE_SUBJECTS[params.step],
+    html,
+    headers: unsubscribeHeaders(params.to),
+  });
+}
+
+// ─── Waitlist velkomst-email ─────────────────────────────────────────────────
 
 export async function sendWelcomeEmail(email: string) {
   return safeSend({
@@ -154,7 +213,7 @@ export async function sendWelcomeEmail(email: string) {
           <p style="font-size:16px;color:#374151">Med venlig hilsen,<br/>Retsklar</p>
         </div>
         <div style="padding:24px 32px;text-align:center;background-color:#f9fafb">
-          <p style="font-size:13px;color:#9ca3af;margin:0">© ${new Date().getFullYear()} Retsklar.dk</p>
+          <p style="font-size:13px;color:#9ca3af;margin:0">&copy; ${new Date().getFullYear()} Retsklar.dk</p>
         </div>
       </div>
     `,

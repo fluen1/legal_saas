@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
               <a href="https://retsklar.dk/helbredstjek" style="color:#2563eb">retsklar.dk</a>.
             </p>
             <p style="font-size:14px;color:#6b7280;margin-top:24px">
-              Med venlig hilsen,<br>Philip fra Retsklar
+              Med venlig hilsen,<br>Retsklar
             </p>
           </div>
           <div style="padding:24px 32px;text-align:center;background-color:#f9fafb">

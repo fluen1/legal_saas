@@ -89,6 +89,16 @@ export async function POST(request: NextRequest) {
       }).catch((err) =>
         log.error('Email send error:', err)
       );
+
+      // Stop nurture sequence immediately after payment
+      supabase
+        .from('nurture_emails')
+        .update({ completed: true })
+        .eq('email', check.email)
+        .eq('completed', false)
+        .then(({ error: nurtureErr }) => {
+          if (nurtureErr) log.error('Nurture stop on payment failed:', nurtureErr);
+        });
     }
   } else if (event.type === 'charge.refunded') {
     const charge = event.data.object as Stripe.Charge;

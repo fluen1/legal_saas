@@ -219,6 +219,8 @@ async function runPipelineBackground(
           health_check_id: checkId,
           email,
           sequence_step: 0,
+          score_level: report.overallScore,
+          issue_count: totalIssues,
           next_send_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
         })
         .then(({ error: nurtureErr }) => {

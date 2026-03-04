@@ -12,8 +12,8 @@ export const COMPANY = {
 export const EMAILS = {
   contact: 'kontakt@retsklar.dk',
   noreply: 'noreply@send.retsklar.dk',
-  from: `Retsklar <noreply@send.retsklar.dk>`,
-  nurtureFrom: `Philip fra Retsklar <noreply@send.retsklar.dk>`,
+  from: `Retsklar <philip@send.retsklar.dk>`,
+  nurtureFrom: `Retsklar <philip@send.retsklar.dk>`,
   fallbackFrom: 'Retsklar <onboarding@resend.dev>',
 } as const;
 

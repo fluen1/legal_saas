@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
-  renderNurtureEmail,
+  sendNurtureEmail,
   getNextSendDate,
-  FROM,
-  REPLY_TO,
-} from '@/lib/email/nurture/send-nurture';
-import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe';
-import { createLogger, requireEnv } from '@/lib/logger';
+} from '@/lib/email/resend';
+import { createLogger } from '@/lib/logger';
 
 const log = createLogger('Nurture Cron');
 const BATCH_SIZE = 50;
@@ -22,14 +18,14 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const resend = new Resend(requireEnv('RESEND_API_KEY'));
 
-  // 1. Fetch due nurture emails (left join: lead magnet rows have no health_check_id)
+  // 1. Fetch due nurture emails — only non-processing rows
   const { data: dueEmails, error: fetchError } = await supabase
     .from('nurture_emails')
     .select('*, health_checks(id, email, report, overall_score, payment_status)')
     .eq('completed', false)
     .eq('unsubscribed', false)
+    .eq('processing', false)
     .lte('next_send_at', new Date().toISOString())
     .limit(BATCH_SIZE);
 
@@ -42,13 +38,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ processed: 0, message: 'No due emails' });
   }
 
+  // 2. Atomically claim all fetched rows by setting processing = true
+  const ids = dueEmails.map((r) => r.id);
+  const { error: claimError } = await supabase
+    .from('nurture_emails')
+    .update({ processing: true })
+    .in('id', ids);
+
+  if (claimError) {
+    log.error('Claim error:', claimError);
+    return NextResponse.json({ error: 'Claim failed' }, { status: 500 });
+  }
+
   let sent = 0;
   let skipped = 0;
   let errors = 0;
 
   for (const record of dueEmails) {
     try {
-      // hc may be null for lead-magnet-originated nurture sequences
       const hc = record.health_checks as {
         id: string; email: string; report: unknown;
         overall_score: string | null; payment_status: string;
@@ -58,7 +65,7 @@ export async function GET(request: NextRequest) {
       if (hc?.payment_status === 'paid') {
         await supabase
           .from('nurture_emails')
-          .update({ completed: true })
+          .update({ completed: true, processing: false })
           .eq('id', record.id);
         skipped++;
         continue;
@@ -74,19 +81,20 @@ export async function GET(request: NextRequest) {
       if (prefs?.unsubscribed) {
         await supabase
           .from('nurture_emails')
-          .update({ unsubscribed: true, completed: true })
+          .update({ unsubscribed: true, completed: true, processing: false })
           .eq('id', record.id);
         skipped++;
         continue;
       }
 
+      // sequence_step is 0-based in DB: 0 = welcome sent, nurture emails are 1-5
       const nextStep = record.sequence_step + 1;
 
       // If sequence is complete
       if (nextStep > 5) {
         await supabase
           .from('nurture_emails')
-          .update({ completed: true })
+          .update({ completed: true, processing: false })
           .eq('id', record.id);
         skipped++;
         continue;
@@ -94,45 +102,26 @@ export async function GET(request: NextRequest) {
 
       // Count issues from report (0 for lead-magnet nurture)
       const report = hc?.report as { areas?: { issues?: unknown[] }[] } | null;
-      const issueCount = report?.areas?.reduce(
-        (sum: number, a: { issues?: unknown[] }) => sum + (a.issues?.length ?? 0),
-        0
-      ) ?? 0;
+      const issueCount = record.issue_count
+        ?? report?.areas?.reduce(
+          (sum: number, a: { issues?: unknown[] }) => sum + (a.issues?.length ?? 0),
+          0
+        ) ?? 0;
 
-      // Render the email
-      const result = await renderNurtureEmail(nextStep, {
-        email: record.email,
-        healthCheckId: hc?.id ?? null,
-        scoreLevel: hc?.overall_score ?? 'yellow',
-        issueCount,
-      });
+      // Determine score level: prefer stored, fallback to health check, default yellow
+      const scoreLevel = (record.score_level || hc?.overall_score || 'yellow') as 'red' | 'yellow' | 'green';
 
-      if (!result) {
-        skipped++;
-        continue;
-      }
-
-      // Send
-      const unsubUrl = buildUnsubscribeUrl(record.email);
-      const sendResult = await resend.emails.send({
-        from: FROM,
-        replyTo: REPLY_TO,
+      // Send via consolidated resend.ts
+      await sendNurtureEmail({
         to: record.email,
-        subject: result.subject,
-        html: result.html,
-        headers: {
-          'List-Unsubscribe': `<${unsubUrl}>`,
-          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-        },
+        name: record.name ?? undefined,
+        reportId: hc?.id ?? record.health_check_id ?? '',
+        scoreLevel,
+        issueCount,
+        step: nextStep as 1 | 2 | 3 | 4 | 5,
       });
 
-      if (sendResult.error) {
-        log.error(`Send failed for ${record.email}:`, sendResult.error);
-        errors++;
-        continue;
-      }
-
-      // Update record
+      // Update record — release processing lock
       const isLastStep = nextStep >= 5;
       await supabase
         .from('nurture_emails')
@@ -141,12 +130,18 @@ export async function GET(request: NextRequest) {
           last_sent_at: new Date().toISOString(),
           next_send_at: isLastStep ? null : getNextSendDate(nextStep).toISOString(),
           completed: isLastStep,
+          processing: false,
         })
         .eq('id', record.id);
 
       sent++;
     } catch (err) {
       log.error(`Error processing ${record.id}:`, err);
+      // Release processing lock on error so it can be retried next cron run
+      await supabase
+        .from('nurture_emails')
+        .update({ processing: false })
+        .eq('id', record.id);
       errors++;
     }
   }
