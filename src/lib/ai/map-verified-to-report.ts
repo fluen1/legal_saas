@@ -46,11 +46,28 @@ export function mapSpecialistToReportArea(analysis: SpecialistAnalysis): ReportA
   };
 }
 
+/** Strip issue-count phrases from summary to prevent AI-generated counts mismatching actual data. */
+function sanitizeSummary(text: string): string {
+  // Remove patterns like "6 kritiske, 5 vigtige og 4 anbefalede" or "Vi har identificeret 12 mangler"
+  return text
+    .replace(/\d+\s+kritiske?/gi, '')
+    .replace(/\d+\s+vigtige?/gi, '')
+    .replace(/\d+\s+anbefalede?/gi, '')
+    .replace(/\d+\s+mangler\b/gi, '')
+    .replace(/\d+\s+fund\b/gi, '')
+    .replace(/\d+\s+forbedringer\b/gi, '')
+    .replace(/,\s*,/g, ',')          // collapse double commas
+    .replace(/,\s*og\s*\./g, '.')    // ", og." → "."
+    .replace(/,\s*\./g, '.')         // ",." → "."
+    .replace(/\s{2,}/g, ' ')         // collapse whitespace
+    .trim();
+}
+
 export function mapVerifiedReportToHealthCheck(verified: VerifiedReport): HealthCheckReport {
   const { report } = verified;
   return {
     overallScore: report.scoreLevel,
-    scoreExplanation: report.scoreSummary,
+    scoreExplanation: sanitizeSummary(report.scoreSummary),
     areas: report.areas.map(mapSpecialistToReportArea),
     actionPlan: report.actionPlan.map(
       (item): ActionItem => ({

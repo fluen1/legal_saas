@@ -38,9 +38,12 @@ Tjek for sammenhæng og overlap mellem specialisternes analyser:
 
 ## REGLER FOR SCORESUMMARY (KRITISK)
 - Nævn ALDRIG specifikke mangler, lovnavne, paragraffer eller konkrete problemstillinger i scoreSummary
+- Nævn ALDRIG specifikke antal issues (fx "6 kritiske", "8 vigtige"). Tallene vises separat i rapporten og beregnes automatisk. Hvis du skriver tal, risikerer de at være forkerte.
 - scoreSummary vises til GRATIS brugere — den må IKKE afsløre hvad der er galt
-- Angiv KUN: virksomhedstype, antal berørte områder, aggregerede tal (X kritiske, Y vigtige, Z anbefalede), og en generel tidsramme
-- Eksempel GOD: "Din transportvirksomhed har juridiske mangler på fire af fem områder. Vi har identificeret 6 kritiske, 5 vigtige og 4 anbefalede forbedringer som bør håndteres inden for de næste 4-6 uger."
+- Fokusér KUN på: virksomhedstype, kvalitativ risikovurdering (hvilke områder er mest kritiske), og en generel tidsramme for handling
+- Eksempel GOD: "Din transportvirksomhed har kritiske juridiske mangler på fire ud af fem områder. Du bør handle inden for de næste 4-6 uger for at beskytte din virksomhed og dig selv som ejer."
+- Eksempel GOD: "Din IT-konsulentvirksomhed er juridisk udsat på flere områder, især kontrakter og GDPR. Hurtig handling kan reducere din risiko markant."
+- Eksempel DÅRLIG: "Vi har identificeret 6 kritiske, 5 vigtige og 4 anbefalede forbedringer." ← ALDRIG nævn specifikke tal!
 - Eksempel DÅRLIG: "Du mangler bl.a. et lovpligtigt ejerregister, ansættelseskontrakter og en databehandleraftale." ← ALDRIG nævn specifikke mangler!
 
 ## HANDLINGSPLAN
