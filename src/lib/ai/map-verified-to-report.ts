@@ -65,10 +65,20 @@ function sanitizeSummary(text: string): string {
 
 export function mapVerifiedReportToHealthCheck(verified: VerifiedReport): HealthCheckReport {
   const { report } = verified;
+  const mappedAreas = report.areas.map(mapSpecialistToReportArea);
+
+  // Compute overall score from area scores: worst wins
+  const areaScores = mappedAreas.map((a) => a.score);
+  const overallScore: ScoreLevel = areaScores.includes('red')
+    ? 'red'
+    : areaScores.includes('yellow')
+      ? 'yellow'
+      : 'green';
+
   return {
-    overallScore: report.scoreLevel,
+    overallScore,
     scoreExplanation: sanitizeSummary(report.scoreSummary),
-    areas: report.areas.map(mapSpecialistToReportArea),
+    areas: mappedAreas,
     actionPlan: report.actionPlan.map(
       (item): ActionItem => ({
         priority: item.priority,
