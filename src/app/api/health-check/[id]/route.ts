@@ -95,6 +95,10 @@ export async function GET(
       } as unknown as typeof data.report;
     }
 
+    // Don't return raw answers to the client (only needed server-side for industry)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (data as any).answers;
+
     return NextResponse.json(data);
   } catch {
     return NextResponse.json(
