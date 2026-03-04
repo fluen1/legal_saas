@@ -63,7 +63,7 @@ export function PurchaseEmail({ name, email, reportId, tier, amount, unsubscribe
 
       <Hr style={{ borderColor: '#E2E8F0', margin: '24px 0 16px 0' }} />
       <Text style={{ fontSize: '13px', color: BRAND.muted, lineHeight: '1.6' }}>
-        Gem denne email som dokumentation for dit køb. Har du spørgsmål? Svar direkte her.
+        Gem denne email som dokumentation for dit køb. Har du spørgsmål? Skriv til os på kontakt@retsklar.dk
       </Text>
     </EmailLayout>
   );

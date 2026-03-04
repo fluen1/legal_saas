@@ -51,7 +51,7 @@ export function WelcomeEmail({ name, reportId, scoreLevel, issueCount, unsubscri
       </div>
 
       <Text style={{ fontSize: '13px', color: BRAND.muted, lineHeight: '1.6' }}>
-        Har du spørgsmål? Svar direkte på denne email.
+        Har du spørgsmål? Skriv til os på kontakt@retsklar.dk
       </Text>
     </EmailLayout>
   );
