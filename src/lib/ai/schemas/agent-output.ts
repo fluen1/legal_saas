@@ -23,6 +23,7 @@ export const LawReferenceSchema = z.object({
 
 export const SpecialistIssueSchema = z.object({
   title: z.string(),
+  teaser: z.string().default(''),
   description: z.string(),
   riskLevel: z.enum(['critical', 'important', 'recommended']),
   confidence: z.enum(['high', 'medium', 'low']),
