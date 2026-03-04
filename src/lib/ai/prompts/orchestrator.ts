@@ -16,19 +16,33 @@ Brug ALDRIG ordene: "Subsumtion", "Jus:", "Retsfølge:", "deklaratorisk", "derog
 
 Din opgave er KUN at:
 
-1. SCORE hvert område (0-100) ud fra specialist-analysens fund og virksomhedsprofilen
-2. BEREGN en samlet overallScore (0-100) med vægtning fra areaWeights i profilen
+1. SCORE hvert område (0-100) baseret på specialisternes analyse
+2. SÆT en overordnet overallScore og scoreLevel baseret på reglerne nedenfor
 3. SKRIV en kort scoreSummary (2 sætninger, max 60 ord) direkte til virksomhedsejeren i du-form
 4. PRIORITÉR en handlingsplan (top 10) cherry-picked fra specialists' issues
 
-## SCORE-NIVEAU
-- red: overallScore < 40
-- yellow: 40 <= overallScore < 70
-- green: overallScore >= 70
+## SCORING-REGLER (SKAL følges præcist)
 
-## AREA SCORING
-For hvert område: vurder specialists score og juster baseret på virksomhedsprofilen.
-status: "critical" (score < 40), "warning" (40-69), "ok" (70+)
+### Area scoring
+For hvert område: score 0-100 baseret på specialistens fund.
+- Under 40 = "critical" — alvorlige lovovertrædelser eller manglende lovpligtig dokumentation
+- 40-69 = "warning" — mangler der bør udbedres men ikke er akut lovstridige
+- 70+ = "ok" — mindre forbedringspunkter eller ingen væsentlige mangler
+
+### Overordnet score — afspejler det VÆRSTE område, IKKE et gennemsnit
+- Hvis ÉT eller flere områder er "critical" (under 40) → overallScore SKAL være under 40 → scoreLevel = "red"
+- Hvis ingen er "critical", men ét eller flere er "warning" (40-69) → overallScore SKAL være 40-69 → scoreLevel = "yellow"
+- Kun hvis ALLE områder er "ok" (70+) → overallScore kan være 70+ → scoreLevel = "green"
+
+VIGTIGT: Du må ALDRIG sætte scoreLevel til "yellow" hvis ét eller flere områder har status "critical". Det er en fejl.
+VIGTIGT: Du må ALDRIG sætte scoreLevel til "green" hvis ét eller flere områder har status "warning" eller "critical".
+
+Tommelfingerregel: overallScore = den laveste area-score.
+
+Eksempler:
+- Områdescores: [25, 30, 35, 65, 72] → 3 critical → overallScore = 25, scoreLevel = "red"
+- Områdescores: [55, 60, 45, 70, 75] → 3 warning → overallScore = 45, scoreLevel = "yellow"
+- Områdescores: [80, 75, 90, 85, 70] → alle ok → overallScore = 75, scoreLevel = "green"
 
 ## KRYDSREFERENCER
 Tjek for sammenhæng og overlap mellem specialisternes analyser:

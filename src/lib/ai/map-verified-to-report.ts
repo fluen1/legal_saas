@@ -36,13 +36,35 @@ function mapIssue(issue: SpecialistIssue): ReportIssue {
   };
 }
 
+/** Validate area score against issue severities — prevent green areas with critical issues */
+function validateAreaScore(score: ScoreLevel, issues: ReportIssue[]): ScoreLevel {
+  const criticalCount = issues.filter((i) => i.risk === 'critical').length;
+  const importantCount = issues.filter((i) => i.risk === 'important').length;
+
+  if (criticalCount > 0 && score === 'green') {
+    console.warn(`[AREA SCORE OVERRIDE] ${criticalCount} critical issues but score was "green" → "red"`);
+    return 'red';
+  }
+  if (criticalCount >= 2 && score === 'yellow') {
+    console.warn(`[AREA SCORE OVERRIDE] ${criticalCount} critical issues but score was "yellow" → "red"`);
+    return 'red';
+  }
+  if (importantCount >= 3 && score === 'green') {
+    console.warn(`[AREA SCORE OVERRIDE] ${importantCount} important issues but score was "green" → "yellow"`);
+    return 'yellow';
+  }
+  return score;
+}
+
 /** Map a single specialist analysis to the UI ReportArea format. */
 export function mapSpecialistToReportArea(analysis: SpecialistAnalysis): ReportArea {
+  const issues = analysis.issues.map(mapIssue);
+  const rawScore = scoreToLevel(analysis.score);
   return {
     name: analysis.areaName,
-    score: scoreToLevel(analysis.score),
+    score: validateAreaScore(rawScore, issues),
     status: analysis.summary,
-    issues: analysis.issues.map(mapIssue),
+    issues,
   };
 }
 
@@ -67,13 +89,19 @@ export function mapVerifiedReportToHealthCheck(verified: VerifiedReport): Health
   const { report } = verified;
   const mappedAreas = report.areas.map(mapSpecialistToReportArea);
 
-  // Compute overall score from area scores: worst wins
-  const areaScores = mappedAreas.map((a) => a.score);
-  const overallScore: ScoreLevel = areaScores.includes('red')
+  // Overall score = worst area score (safety net — independent of AI judgment)
+  const areaScoreLevels = mappedAreas.map((a) => a.score);
+  const overallScore: ScoreLevel = areaScoreLevels.includes('red')
     ? 'red'
-    : areaScores.includes('yellow')
+    : areaScoreLevels.includes('yellow')
       ? 'yellow'
       : 'green';
+
+  if (overallScore !== report.scoreLevel) {
+    console.warn(
+      `[OVERALL SCORE OVERRIDE] AI said "${report.scoreLevel}" but areas are [${areaScoreLevels.join(', ')}] → "${overallScore}"`
+    );
+  }
 
   return {
     overallScore,
