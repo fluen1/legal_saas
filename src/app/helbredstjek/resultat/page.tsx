@@ -81,13 +81,21 @@ const RISK_BORDER: Record<RiskLevel, string> = {
   recommended: '#22C55E',
 };
 
+const AREA_TOPIC: Record<string, string> = {
+  'GDPR & Persondata': 'GDPR-overholdelse',
+  'Ansættelsesret': 'ansættelsesretlige forhold',
+  'Selskabsret & Governance': 'selskabsretlige forhold',
+  'Kontrakter & Kommercielle Aftaler': 'kontrakter og kommercielle aftaler',
+  'IP & Immaterielle Rettigheder': 'immaterielle rettigheder',
+};
+
 function LockedAreaCard({ area }: { area: FreeArea }) {
   const color = SCORE_COLORS[area.score];
   const sev = area.issueSeverities;
   const sevParts: string[] = [];
-  if (sev.critical > 0) sevParts.push(`${sev.critical} kritiske`);
-  if (sev.important > 0) sevParts.push(`${sev.important} vigtige`);
-  if (sev.recommended > 0) sevParts.push(`${sev.recommended} anbefalede`);
+  if (sev.critical > 0) sevParts.push(`${sev.critical} ${sev.critical === 1 ? 'kritisk' : 'kritiske'}`);
+  if (sev.important > 0) sevParts.push(`${sev.important} ${sev.important === 1 ? 'vigtig' : 'vigtige'}`);
+  if (sev.recommended > 0) sevParts.push(`${sev.recommended} ${sev.recommended === 1 ? 'anbefalet' : 'anbefalede'}`);
 
   return (
     <div className="overflow-hidden rounded-xl border border-surface-border bg-white shadow-sm">
@@ -118,12 +126,11 @@ function LockedAreaCard({ area }: { area: FreeArea }) {
       {/* Issues — title + teaser visible, description/lawRefs/action locked */}
       {area.issues.length > 0 && (
         <div className="border-t border-surface-border bg-gray-50/30 px-5 py-4 md:px-6">
-          {/* Severity breakdown */}
-          {sevParts.length > 0 && (
-            <p className="mb-3 text-xs text-text-secondary">
-              Heraf {sevParts.join(', ')}
-            </p>
-          )}
+          {/* Generic area intro */}
+          <p className="mb-3 text-sm text-text-secondary">
+            Vi har gennemgået din virksomheds {AREA_TOPIC[area.name] ?? area.name.toLowerCase()} og fundet {area.issueCount} {area.issueCount === 1 ? 'mangel' : 'mangler'}.
+            {sevParts.length > 0 && <> Heraf {sevParts.join(', ')}.</>}
+          </p>
 
           <div className="space-y-3">
             {area.issues.map((issue, i) => (

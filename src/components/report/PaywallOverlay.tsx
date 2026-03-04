@@ -12,7 +12,7 @@ interface PaywallOverlayProps {
 }
 
 const FULL_FEATURES = [
-  'Præcis hvilke mangler din virksomhed har',
+  'Detaljeret juridisk analyse af hver mangel med lovhenvisninger',
   'Konkrete handlingsanvisninger med tidsestimater',
   'Prioriteret handlingsplan — hvad du skal gøre først',
   'PDF-rapport til din rådgiver eller revisor',
@@ -52,9 +52,9 @@ export function PaywallOverlay({ healthCheckId, totalIssues, issueCounts }: Payw
 
   // Build subtitle with issue counts
   const parts: string[] = [];
-  if (issueCounts.critical > 0) parts.push(`${issueCounts.critical} kritiske`);
-  if (issueCounts.important > 0) parts.push(`${issueCounts.important} vigtige`);
-  if (issueCounts.recommended > 0) parts.push(`${issueCounts.recommended} anbefalede`);
+  if (issueCounts.critical > 0) parts.push(`${issueCounts.critical} ${issueCounts.critical === 1 ? 'kritisk' : 'kritiske'}`);
+  if (issueCounts.important > 0) parts.push(`${issueCounts.important} ${issueCounts.important === 1 ? 'vigtig' : 'vigtige'}`);
+  if (issueCounts.recommended > 0) parts.push(`${issueCounts.recommended} ${issueCounts.recommended === 1 ? 'anbefalet' : 'anbefalede'}`);
   const issueBreakdown = parts.join(', ');
 
   return (

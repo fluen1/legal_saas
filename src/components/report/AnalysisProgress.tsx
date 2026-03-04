@@ -5,8 +5,17 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { AlertTriangle, Check, Circle, Loader2, WifiOff } from 'lucide-react';
+
+const ROTATING_MESSAGES = [
+  'Gennemgår gældende lovgivning...',
+  'Analyserer dine svar...',
+  'Identificerer juridiske risici...',
+  'Matcher med gældende regler...',
+  'Vurderer compliance-niveau...',
+  'Udarbejder risikovurdering...',
+];
 
 const STEPS = [
   { threshold: 0.10, label: 'Genererer virksomhedsprofil' },
@@ -26,6 +35,14 @@ const PAST_TENSE: Record<string, string> = {
   'Verificerer': 'Verificeret',
 };
 
+const AREA_NAMES_BY_INDEX = [
+  'GDPR & Persondata',
+  'Ansættelsesret',
+  'Selskabsret & Governance',
+  'Kontrakter & Kommercielle Aftaler',
+  'IP & Immaterielle Rettigheder',
+];
+
 const MAX_POLLS = 120; // 120 polls × 3s = 6 minutes
 const MAX_CONSECUTIVE_ERRORS = 3;
 
@@ -38,12 +55,32 @@ interface AnalysisProgressProps {
 
 export function AnalysisProgress({ healthCheckId, pollInterval = 3000, compact, onProgressUpdate }: AnalysisProgressProps) {
   const [progress, setProgress] = useState(0);
-  const [step, setStep] = useState('');
   const [completedCount, setCompletedCount] = useState(0);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<'timeout' | 'network' | 'failed' | null>(null);
+  const [rotatingText, setRotatingText] = useState(ROTATING_MESSAGES[0]);
+  const [completionFlash, setCompletionFlash] = useState<string | null>(null);
   const pollCount = useRef(0);
   const consecutiveErrors = useRef(0);
+  const prevCompletedCount = useRef(0);
+  const rotatingIndex = useRef(0);
+
+  // Rotating text timer — cycles every 3.5s, pauses during completion flash
+  useEffect(() => {
+    if (done || error) return;
+    const timer = setInterval(() => {
+      if (completionFlash) return; // pause rotation during flash
+      rotatingIndex.current = (rotatingIndex.current + 1) % ROTATING_MESSAGES.length;
+      setRotatingText(ROTATING_MESSAGES[rotatingIndex.current]);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [done, error, completionFlash]);
+
+  // Flash completed area name for 2s when a new area finishes
+  const flashCompletion = useCallback((areaName: string) => {
+    setCompletionFlash(areaName);
+    setTimeout(() => setCompletionFlash(null), 2000);
+  }, []);
 
   useEffect(() => {
     if (!healthCheckId) return;
@@ -74,9 +111,16 @@ export function AnalysisProgress({ healthCheckId, pollInterval = 3000, compact, 
 
         const p = data.progress ?? 0;
         setProgress((prev) => Math.max(prev, p));
-        setStep(data.step ?? '');
-        setCompletedCount(data.completedAreas ?? 0);
-        onProgressUpdate?.({ progress: p, step: data.step ?? '', completedAreas: data.completedAreas ?? 0 });
+        const newCount = data.completedAreas ?? 0;
+        setCompletedCount(newCount);
+        onProgressUpdate?.({ progress: p, step: data.step ?? '', completedAreas: newCount });
+
+        // Flash area name when a new specialist finishes
+        if (newCount > prevCompletedCount.current && newCount <= AREA_NAMES_BY_INDEX.length) {
+          const justFinished = AREA_NAMES_BY_INDEX[newCount - 1];
+          if (justFinished) flashCompletion(justFinished);
+          prevCompletedCount.current = newCount;
+        }
 
         if (data.analysisStatus === 'error' || data.status === 'failed') {
           setError('failed');
@@ -106,7 +150,7 @@ export function AnalysisProgress({ healthCheckId, pollInterval = 3000, compact, 
     poll();
 
     return () => clearInterval(interval);
-  }, [healthCheckId, pollInterval, onProgressUpdate]);
+  }, [healthCheckId, pollInterval, onProgressUpdate, flashCompletion]);
 
   const currentStepIndex = STEPS.findIndex((s) => progress < s.threshold);
 
@@ -154,6 +198,9 @@ export function AnalysisProgress({ healthCheckId, pollInterval = 3000, compact, 
   if (compact) {
     // Progress based solely on completed areas: 0/5 = 0%, 1/5 = 20%, etc.
     const areaProgress = Math.round((completedCount / 5) * 100);
+    const displayText = completionFlash
+      ? `${completionFlash} — færdig ✓`
+      : rotatingText;
 
     return (
       <div className="rounded-lg border border-surface-border bg-white px-5 py-3">
@@ -161,7 +208,12 @@ export function AnalysisProgress({ healthCheckId, pollInterval = 3000, compact, 
           <span className="text-sm font-medium text-text-primary">
             {completedCount}/5 områder analyseret
           </span>
-          <span className="text-xs text-text-secondary">{step}</span>
+          <span
+            key={displayText}
+            className="animate-in fade-in duration-300 text-xs text-text-secondary"
+          >
+            {displayText}
+          </span>
         </div>
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
           <div
