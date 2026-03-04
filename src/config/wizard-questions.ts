@@ -36,6 +36,14 @@ export const WIZARD_STEPS: WizardStepConfig[] = [
 export const WIZARD_QUESTIONS: Question[] = [
   // ──── COMPANY BASICS ────
   {
+    id: 'contact_name',
+    section: 'company_basics',
+    label: 'Hvad hedder du?',
+    type: 'text',
+    required: false,
+    placeholder: 'Fx Anders Hansen',
+  },
+  {
     id: 'company_type',
     section: 'company_basics',
     label: 'Hvilken virksomhedsform har du?',

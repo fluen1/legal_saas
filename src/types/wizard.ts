@@ -11,6 +11,7 @@ export interface Question {
   section: WizardSection;
   label: string;
   helpText?: string;
+  placeholder?: string;
   type: AnswerType;
   options?: QuestionOption[];
   required: boolean;

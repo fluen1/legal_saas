@@ -111,7 +111,7 @@ export function QuestionField({ question, answers, onAnswer }: QuestionFieldProp
           data-testid={question.id}
           value={String(currentValue || '')}
           onChange={(e) => onAnswer(question.id, e.target.value)}
-          placeholder="Skriv dit svar her..."
+          placeholder={question.placeholder ?? 'Skriv dit svar her...'}
         />
       )}
 

@@ -202,12 +202,15 @@ async function runPipelineBackground(
 
     const totalIssues = report.areas.reduce((sum, a) => sum + a.issues.length, 0);
 
+    const contactName = typeof answers.contact_name === 'string' ? answers.contact_name.trim() || null : null;
+
     if (tier === 'free') {
       sendWelcomeReportEmail({
         to: email,
         reportId: checkId,
         score: report.overallScore,
         issueCount: totalIssues,
+        name: contactName ?? undefined,
       }).catch((err) =>
         log.error('Velkomst-email fejlede:', err)
       );
@@ -218,6 +221,7 @@ async function runPipelineBackground(
         .insert({
           health_check_id: checkId,
           email,
+          name: contactName || null,
           sequence_step: 0,
           score_level: report.overallScore,
           issue_count: totalIssues,
