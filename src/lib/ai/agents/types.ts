@@ -35,6 +35,8 @@ export interface LawReference {
 
 export interface SpecialistIssue {
   title: string;
+  /** One-sentence consequence teaser for free users (max 15 words, no action) */
+  teaser: string;
   description: string;
   riskLevel: "critical" | "important" | "recommended";
   confidence: "high" | "medium" | "low";

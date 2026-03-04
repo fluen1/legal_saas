@@ -27,6 +27,7 @@ export function mapAIOutputToReport(output: HealthCheckOutput): HealthCheckRepor
           (issue): ReportIssue => ({
             title: issue.titel,
             risk: issue.risiko,
+            teaser: '',
             description: issue.beskrivelse,
             lawReferences: (issue.lovhenvisninger ?? []).map((ref) => ({
               law: ref.lov,

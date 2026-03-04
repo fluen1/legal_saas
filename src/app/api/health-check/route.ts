@@ -22,9 +22,9 @@ import { createLogger } from '@/lib/logger';
 const log = createLogger('Health Check');
 const USE_MULTI_AGENT = process.env.USE_MULTI_AGENT_PIPELINE === 'true';
 
-/** Strip detailed data from a ReportArea for free-tier partial results.
- *  Only expose: name, score color, issue count, severity breakdown.
- *  NO titles, NO descriptions, NO status text, NO law references. */
+/** Strip detailed data from a ReportArea for free-tier.
+ *  Expose: name, score, issue titles + severity + teaser.
+ *  Strip: description, lawReferences, action, confidence, area status. */
 function stripAreaForPaywall(area: ReportArea): Record<string, unknown> {
   return {
     name: area.name,
@@ -35,6 +35,11 @@ function stripAreaForPaywall(area: ReportArea): Record<string, unknown> {
       important: area.issues.filter((i) => i.risk === 'important').length,
       recommended: area.issues.filter((i) => i.risk === 'recommended').length,
     },
+    issues: area.issues.map((i) => ({
+      title: i.title,
+      risk: i.risk,
+      teaser: i.teaser ?? '',
+    })),
   };
 }
 

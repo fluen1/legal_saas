@@ -47,14 +47,22 @@ export async function GET(
       const partial = data.partial_results as { areas?: any[]; completedAreas?: string[] } | null;
       const answers = data.answers as Record<string, unknown> | null;
 
-      // Defense in depth: only expose name + score + counts (no titles, no descriptions)
-      const safeAreas = (partial?.areas ?? []).map((a: Record<string, unknown>) => ({
-        name: a.name,
-        score: a.score,
-        // Handle both old format (issues array) and new format (issueCount)
-        issueCount: a.issueCount ?? (Array.isArray(a.issues) ? (a.issues as unknown[]).length : 0),
-        issueSeverities: a.issueSeverities ?? { critical: 0, important: 0, recommended: 0 },
-      }));
+      // Defense in depth: only expose name + score + issue titles/teasers
+      const safeAreas = (partial?.areas ?? []).map((a: Record<string, unknown>) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const issues = Array.isArray(a.issues) ? (a.issues as any[]) : [];
+        return {
+          name: a.name,
+          score: a.score,
+          issueCount: a.issueCount ?? issues.length,
+          issueSeverities: a.issueSeverities ?? { critical: 0, important: 0, recommended: 0 },
+          issues: issues.map((i: Record<string, unknown>) => ({
+            title: i.title ?? '',
+            risk: i.risk ?? 'recommended',
+            teaser: i.teaser ?? '',
+          })),
+        };
+      });
 
       return NextResponse.json({
         status: data.status,
@@ -83,6 +91,11 @@ export async function GET(
             important: a.issues.filter((i) => i.risk === 'important').length,
             recommended: a.issues.filter((i) => i.risk === 'recommended').length,
           },
+          issues: a.issues.map((i) => ({
+            title: i.title,
+            risk: i.risk,
+            teaser: i.teaser ?? '',
+          })),
         })),
         generatedAt: full.generatedAt,
         disclaimer: full.disclaimer,

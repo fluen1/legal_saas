@@ -21,6 +21,7 @@ export const specialistTool: Tool = {
           type: "object",
           required: [
             "title",
+            "teaser",
             "description",
             "riskLevel",
             "confidence",
@@ -32,6 +33,7 @@ export const specialistTool: Tool = {
           ],
           properties: {
             title: { type: "string" },
+            teaser: { type: "string", description: "One-sentence consequence (max 15 words). Focus on risk/cost/liability. No action verbs." },
             description: { type: "string" },
             riskLevel: { type: "string", enum: ["critical", "important", "recommended"] },
             confidence: { type: "string", enum: ["high", "medium", "low"] },

@@ -28,6 +28,7 @@ function mapIssue(issue: SpecialistIssue): ReportIssue {
   return {
     title: issue.title,
     risk: issue.riskLevel,
+    teaser: issue.teaser ?? '',
     description: issue.description,
     lawReferences: issue.lawReferences.map(mapLawRef),
     action: issue.action,

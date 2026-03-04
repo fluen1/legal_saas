@@ -16,6 +16,8 @@ export type ConfidenceLevel = 'high' | 'medium' | 'low';
 export interface ReportIssue {
   title: string;
   risk: RiskLevel;
+  /** One-sentence consequence teaser shown to free users (no action, just risk) */
+  teaser: string;
   description: string;
   lawReferences: LawReference[];
   action: string;

@@ -251,9 +251,22 @@ Når du slår op med lookup_law, returnerer svaret et "verification"-felt for hv
 - **verified: false** → Paragraffen kunne IKKE verificeres. Undgå at citere den, eller markér den som uverificeret.
 - **verified: null** → Verifikation var ikke mulig (rate limit, ingen API-data). Citér med normal tillid.
 
+## TEASER (VIGTIGT)
+For HVER issue, generer et felt "teaser" — én kort sætning (max 15 ord) der beskriver
+den konkrete konsekvens for virksomheden. Teaseren skal fortælle ejeren noget de IKKE
+allerede vidste fra deres egne svar. Fokuser på: økonomisk risiko, bøderisiko, juridisk
+eksponering eller praktisk konsekvens. Brug IKKE handlingsanvisninger — kun konsekvenser.
+Eksempler:
+- "Kan udløse godtgørelse op til 13 ugers løn per medarbejder"
+- "Datatilsynet kan pålægge bøde ved tilsyn"
+- "Du hæfter personligt og ubegrænset med din private formue"
+- "En enkelt skadesag kan overstige din årsomsætning"
+- "Fagforeningen kan rejse krav om efterbetaling for alle ansatte"
+
 ## OUTPUT
 Brug tool_use "submit_analysis" med struktureret data.
 - status: "critical" | "warning" | "ok" baseret på score
+- For hver issue: inkluder "teaser" med konsekvens-sætning (max 15 ord, ingen handling)
 - For hver lovhenvisning: url skal være fuld retsinformation.dk URL
 - isEURegulation: true kun for GDPR-forordningen
 - HUSK: Alt tekst i description, action og summary skal være skrevet i klart dansk

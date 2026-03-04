@@ -152,6 +152,9 @@ export function AnalysisProgress({ healthCheckId, pollInterval = 3000, compact, 
   }
 
   if (compact) {
+    // Progress based solely on completed areas: 0/5 = 0%, 1/5 = 20%, etc.
+    const areaProgress = Math.round((completedCount / 5) * 100);
+
     return (
       <div className="rounded-lg border border-surface-border bg-white px-5 py-3">
         <div className="flex items-center justify-between">
@@ -163,7 +166,7 @@ export function AnalysisProgress({ healthCheckId, pollInterval = 3000, compact, 
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
           <div
             className="h-full bg-blue-600 transition-all duration-500"
-            style={{ width: `${Math.round(progress * 100)}%` }}
+            style={{ width: `${areaProgress}%` }}
           />
         </div>
       </div>
