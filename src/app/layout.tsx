@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { DM_Sans, DM_Serif_Display } from 'next/font/google';
+import Script from 'next/script';
 import { Toaster } from '@/components/ui/sonner';
 import { CookieBanner } from '@/components/shared/CookieBanner';
 import { Analytics } from '@/components/shared/Analytics';
@@ -47,6 +48,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="da">
+      <head>
+        <Script id="gtag-consent-default" strategy="beforeInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('consent', 'default', {
+              ad_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied',
+              analytics_storage: 'denied',
+              wait_for_update: 500
+            });
+          `}
+        </Script>
+      </head>
       <body
         className={`${dmSans.variable} ${dmSerif.variable} font-sans antialiased`}
       >

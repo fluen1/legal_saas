@@ -1,24 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Script from 'next/script';
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { getCookieConsent } from './CookieBanner';
 
 export function Analytics() {
-  const [consented, setConsented] = useState(false);
-
   useEffect(() => {
-    const check = () => setConsented(getCookieConsent() === 'accepted');
-    check();
-
-    // Re-check when cookie banner is dismissed
-    const interval = setInterval(check, 2000);
-    return () => clearInterval(interval);
+    if (getCookieConsent() === 'accepted') {
+      window.gtag?.('consent', 'update', {
+        ad_storage: 'granted',
+        ad_user_data: 'granted',
+        ad_personalization: 'granted',
+        analytics_storage: 'granted',
+      });
+    }
   }, []);
-
-  if (!consented) return null;
 
   return (
     <>
