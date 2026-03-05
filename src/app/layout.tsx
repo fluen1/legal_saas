@@ -54,11 +54,20 @@ export default function RootLayout({
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('consent', 'default', {
+              analytics_storage: 'denied',
               ad_storage: 'denied',
               ad_user_data: 'denied',
               ad_personalization: 'denied',
-              analytics_storage: 'denied',
-              wait_for_update: 500
+              wait_for_update: 500,
+              region: ['AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI',
+                       'FR','GR','HR','HU','IE','IS','IT','LI','LT','LU',
+                       'LV','MT','NL','NO','PL','PT','RO','SE','SI','SK','GB']
+            });
+            gtag('consent', 'default', {
+              analytics_storage: 'granted',
+              ad_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied'
             });
           `}
         </Script>
