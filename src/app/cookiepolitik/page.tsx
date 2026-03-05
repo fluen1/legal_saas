@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function CookiepolitikPage() {
   return (
-    <LegalPageLayout title="Cookiepolitik" lastUpdated="26. februar 2026">
+    <LegalPageLayout title="Cookiepolitik" lastUpdated="5. marts 2026">
       <section>
         <h2>1. Hvad er cookies?</h2>
         <p>
@@ -46,13 +46,33 @@ export default function CookiepolitikPage() {
 
         <h3>Statistik-cookies (kræver samtykke)</h3>
         <p>
-          Vi bruger <strong>ingen</strong> tredjeparts statistik-cookies (Google Analytics e.l.) på
-          nuværende tidspunkt.
+          Vi bruger Google Analytics 4 til at forstå hvordan besøgende bruger vores hjemmeside.
+          Cookies sættes kun hvis du accepterer statistik-cookies via vores cookie-banner.
         </p>
-        <p>
-          Hvis vi fremover implementerer statistik-cookies, opdaterer vi denne politik og beder om
-          dit samtykke.
-        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Cookie</th>
+              <th>Formål</th>
+              <th>Udbyder</th>
+              <th>Udløber</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>_ga</td>
+              <td>Skelner mellem brugere (statistik)</td>
+              <td>Google Analytics</td>
+              <td>2 år</td>
+            </tr>
+            <tr>
+              <td>_ga_*</td>
+              <td>Bevarer session-tilstand</td>
+              <td>Google Analytics</td>
+              <td>2 år</td>
+            </tr>
+          </tbody>
+        </table>
 
         <h3>Marketing-cookies</h3>
         <p>Vi bruger <strong>ingen</strong> marketing- eller tracking-cookies.</p>
@@ -74,6 +94,11 @@ export default function CookiepolitikPage() {
               <td>Stripe</td>
               <td>Betalingshåndtering og svindelforebyggelse</td>
               <td>Nødvendig</td>
+            </tr>
+            <tr>
+              <td>Google Analytics</td>
+              <td>Statistik og trafikmåling</td>
+              <td>Statistik</td>
             </tr>
           </tbody>
         </table>

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function HandelsbetingelserPage() {
   return (
-    <LegalPageLayout title="Handelsbetingelser" lastUpdated="26. februar 2026">
+    <LegalPageLayout title="Handelsbetingelser" lastUpdated="5. marts 2026">
       <section>
         <h2>1. Virksomhedsoplysninger</h2>
         <p>
@@ -23,7 +23,7 @@ export default function HandelsbetingelserPage() {
         <h2>2. Produktet</h2>
         <p>Retsklar tilbyder et AI-drevet juridisk helbredstjek for virksomheder. Produktet består af:</p>
         <ul>
-          <li><strong>Gratis Mini-Scan (0 kr):</strong> Overordnet juridisk score baseret på 5 spørgsmål. Kræver email-adresse.</li>
+          <li><strong>Gratis Mini-Scan (0 kr):</strong> Overordnet juridisk score baseret på 25 spørgsmål. Kræver email-adresse.</li>
           <li><strong>Fuld Rapport (499 kr):</strong> Detaljeret juridisk analyse med lovhenvisninger og handlingsplan.</li>
           <li><strong>Premium (1.499 kr):</strong> Fuld rapport samt 30 minutters personlig opfølgning med juridisk rådgiver.</li>
         </ul>
@@ -77,8 +77,9 @@ export default function HandelsbetingelserPage() {
         <p>
           Hvis rapporten indeholder åbenlyse fejl (fx forkerte lovhenvisninger eller manglende analyse
           af et område, du har besvaret spørgsmål om), kan du kontakte os på{' '}
-          <a href="mailto:kontakt@retsklar.dk">kontakt@retsklar.dk</a> inden 14 dage. Vi vil da
-          vurdere, om du er berettiget til en ny analyse eller hel/delvis refusion.
+          <a href="mailto:kontakt@retsklar.dk">kontakt@retsklar.dk</a> inden 24 måneder jf. købelovens
+          reklamationsregler for digitale ydelser. Vi vil da vurdere, om du er berettiget til en ny
+          analyse eller hel/delvis refusion.
         </p>
       </section>
 

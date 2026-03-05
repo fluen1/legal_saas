@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function PrivatlivspolitikPage() {
   return (
-    <LegalPageLayout title="Privatlivspolitik" lastUpdated="26. februar 2026">
+    <LegalPageLayout title="Privatlivspolitik" lastUpdated="5. marts 2026">
       <section>
         <h2>1. Dataansvarlig</h2>
         <p>
@@ -136,6 +136,11 @@ export default function PrivatlivspolitikPage() {
             <tr>
               <td>Anthropic PBC</td>
               <td>AI-analyse af helbredstjek</td>
+              <td>USA (EU Standard Contractual Clauses)</td>
+            </tr>
+            <tr>
+              <td>Google LLC</td>
+              <td>Statistik og trafikmåling (Google Analytics)</td>
               <td>USA (EU Standard Contractual Clauses)</td>
             </tr>
           </tbody>
