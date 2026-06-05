@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
       .update({
         stripe_checkout_session_id: session.id,
         payment_status: 'pending',
+        consented_at: new Date().toISOString(),
       })
       .eq('id', healthCheckId);
 

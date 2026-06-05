@@ -52,24 +52,22 @@ export function QuestionField({ question, answers, onAnswer }: QuestionFieldProp
           className="space-y-2"
         >
           {question.options.map((option) => (
-            <div
+            <label
               key={option.value}
-              className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50"
+              htmlFor={`${question.id}-${option.value}`}
+              className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50"
               data-testid={`${question.id}-${option.value}`}
             >
               <RadioGroupItem value={option.value} id={`${question.id}-${option.value}`} />
-              <Label
-                htmlFor={`${question.id}-${option.value}`}
-                className="flex-1 cursor-pointer text-sm font-normal"
-              >
+              <span className="flex-1 text-sm font-normal">
                 {option.label}
                 {option.description && (
                   <span className="block text-xs text-muted-foreground">
                     {option.description}
                   </span>
                 )}
-              </Label>
-            </div>
+              </span>
+            </label>
           ))}
         </RadioGroup>
       )}
@@ -79,9 +77,10 @@ export function QuestionField({ question, answers, onAnswer }: QuestionFieldProp
           {question.options.map((option) => {
             const selected = Array.isArray(currentValue) ? currentValue : [];
             return (
-              <div
+              <label
                 key={option.value}
-                className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                htmlFor={`${question.id}-${option.value}`}
+                className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
                 data-testid={`${question.id}-${option.value}`}
               >
                 <Checkbox
@@ -94,13 +93,10 @@ export function QuestionField({ question, answers, onAnswer }: QuestionFieldProp
                     onAnswer(question.id, newVal);
                   }}
                 />
-                <Label
-                  htmlFor={`${question.id}-${option.value}`}
-                  className="flex-1 cursor-pointer text-sm font-normal"
-                >
+                <span className="flex-1 text-sm font-normal">
                   {option.label}
-                </Label>
-              </div>
+                </span>
+              </label>
             );
           })}
         </div>

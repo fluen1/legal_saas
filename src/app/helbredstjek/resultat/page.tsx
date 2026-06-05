@@ -11,7 +11,7 @@ import { PaywallOverlay } from '@/components/report/PaywallOverlay';
 import { ReportPDF } from '@/components/report/ReportPDF';
 import { AnalysisProgress } from '@/components/report/AnalysisProgress';
 import { Disclaimer } from '@/components/shared/Disclaimer';
-import { Loader2, Lock } from 'lucide-react';
+import { CheckCircle, Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SCORE_COLORS, RISK_LABELS } from '@/lib/utils/constants';
 import type { HealthCheckReport, ReportArea, ScoreLevel, RiskLevel } from '@/types/report';
@@ -53,10 +53,6 @@ const ALL_AREA_NAMES = [
   'Kontrakter & Kommercielle Aftaler',
   'IP & Immaterielle Rettigheder',
 ];
-
-const IS_TEST_MODE =
-  typeof window !== 'undefined' &&
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_');
 
 function AreaCardSkeleton({ label }: { label: string }) {
   return (
@@ -176,7 +172,6 @@ function ResultatContent() {
   const searchParams = useSearchParams();
   const healthCheckId = searchParams.get('id');
   const paid = searchParams.get('paid');
-  const bypassPaywall = !!paid || IS_TEST_MODE;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -190,12 +185,6 @@ function ResultatContent() {
   const renderedAreasRef = useRef<Set<string>>(new Set());
   const partialAreasRef = useRef<FreeArea[]>([]);
   const paymentPollCount = useRef(0);
-
-  useEffect(() => {
-    if (IS_TEST_MODE) {
-      console.warn('⚠️ Test mode: Paywall disabled');
-    }
-  }, []);
 
   const fetchReport = useCallback(async () => {
     if (!healthCheckId) return;
@@ -248,18 +237,30 @@ function ResultatContent() {
         setReport(data.report as unknown as HealthCheckReport);
         setWaitingForPayment(false);
         setTimeout(() => setShowFullReport(true), 50);
-      } else if (!!paid && paymentPollCount.current < 5) {
-        // After Stripe redirect: webhook may not have fired yet — poll briefly
-        paymentPollCount.current++;
-        setWaitingForPayment(true);
-        setLoading(false);
-        setTimeout(fetchReport, 2000);
-        return;
-      } else {
-        // Show free report (or give up waiting for payment)
+      } else if (data.payment_status === 'refunded' || data.payment_status === 'disputed') {
+        // Access revoked — show free report, no polling
         setWaitingForPayment(false);
         const stripped = data.report as unknown as FreeReport;
         setFreeReport(stripped);
+        setError('access_revoked');
+      } else if (!!paid && data.payment_status === 'pending' && paymentPollCount.current < 15) {
+        // After Stripe redirect: webhook may not have fired yet — poll with backoff
+        paymentPollCount.current++;
+        setWaitingForPayment(true);
+        setLoading(false);
+        const attempt = paymentPollCount.current;
+        const delay = attempt <= 5 ? 2000 : attempt <= 10 ? 3000 : 5000;
+        setTimeout(fetchReport, delay);
+        return;
+      } else {
+        // All 15 poll attempts exhausted — show payment confirmation error
+        setWaitingForPayment(false);
+        if (paid) {
+          setError('payment_pending');
+        } else {
+          const stripped = data.report as unknown as FreeReport;
+          setFreeReport(stripped);
+        }
       }
     } catch {
       setError('Noget gik galt');
@@ -267,7 +268,7 @@ function ResultatContent() {
     }
 
     setLoading(false);
-  }, [healthCheckId, bypassPaywall]);
+  }, [healthCheckId, paid]);
 
   useEffect(() => {
     if (!healthCheckId) {
@@ -365,13 +366,50 @@ function ResultatContent() {
     return (
       <main className="flex min-h-[60vh] items-center justify-center bg-off-white">
         <div className="text-center">
-          <p className="font-serif text-lg text-score-red">{error}</p>
-          <Button
-            className="mt-4 bg-deep-blue hover:bg-deep-blue/90"
-            onClick={() => window.location.reload()}
-          >
-            Prøv igen
-          </Button>
+          {error === 'payment_pending' ? (
+            <>
+              <CheckCircle className="mx-auto size-10 text-score-green" />
+              <p className="mt-4 font-serif text-lg text-text-primary">
+                Din betaling er registreret
+              </p>
+              <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
+                Det tager lidt længere end normalt at bekræfte. Prøv at genindlæse
+                siden om et øjeblik — din rapport vil være klar.
+              </p>
+              <Button
+                className="mt-6 bg-deep-blue hover:bg-deep-blue/90"
+                onClick={() => window.location.reload()}
+              >
+                Genindlæs siden
+              </Button>
+            </>
+          ) : error === 'access_revoked' ? (
+            <>
+              <p className="mt-4 font-serif text-lg text-text-primary">
+                Din adgang er ophørt
+              </p>
+              <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
+                Betalingen for denne rapport er blevet refunderet. Du kan se
+                den gratis oversigt nedenfor, eller købe adgang igen.
+              </p>
+              <Button
+                className="mt-6 bg-deep-blue hover:bg-deep-blue/90"
+                onClick={() => setError('')}
+              >
+                Se gratis oversigt
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="font-serif text-lg text-score-red">{error}</p>
+              <Button
+                className="mt-4 bg-deep-blue hover:bg-deep-blue/90"
+                onClick={() => window.location.reload()}
+              >
+                Prøv igen
+              </Button>
+            </>
+          )}
         </div>
       </main>
     );

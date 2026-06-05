@@ -19,6 +19,22 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient();
 
+  // 0. Unlock stuck rows: processing=true for >15 minutes means the previous run crashed
+  const { data: stuckRows } = await supabase
+    .from('nurture_emails')
+    .select('id')
+    .eq('processing', true)
+    .lt('processing_started_at', new Date(Date.now() - 15 * 60 * 1000).toISOString());
+
+  if (stuckRows && stuckRows.length > 0) {
+    const stuckIds = stuckRows.map((r) => r.id);
+    await supabase
+      .from('nurture_emails')
+      .update({ processing: false, processing_started_at: null })
+      .in('id', stuckIds);
+    log.warn(`Unlocked ${stuckIds.length} stuck rows: ${stuckIds.join(', ')}`);
+  }
+
   // 1. Fetch due nurture emails — only non-processing rows
   const { data: dueEmails, error: fetchError } = await supabase
     .from('nurture_emails')
@@ -42,7 +58,7 @@ export async function GET(request: NextRequest) {
   const ids = dueEmails.map((r) => r.id);
   const { error: claimError } = await supabase
     .from('nurture_emails')
-    .update({ processing: true })
+    .update({ processing: true, processing_started_at: new Date().toISOString() })
     .in('id', ids);
 
   if (claimError) {
@@ -65,7 +81,7 @@ export async function GET(request: NextRequest) {
       if (hc?.payment_status === 'paid') {
         await supabase
           .from('nurture_emails')
-          .update({ completed: true, processing: false })
+          .update({ completed: true, processing: false, processing_started_at: null })
           .eq('id', record.id);
         skipped++;
         continue;
@@ -81,7 +97,7 @@ export async function GET(request: NextRequest) {
       if (prefs?.unsubscribed) {
         await supabase
           .from('nurture_emails')
-          .update({ unsubscribed: true, completed: true, processing: false })
+          .update({ unsubscribed: true, completed: true, processing: false, processing_started_at: null })
           .eq('id', record.id);
         skipped++;
         continue;
@@ -94,7 +110,7 @@ export async function GET(request: NextRequest) {
       if (nextStep > 5) {
         await supabase
           .from('nurture_emails')
-          .update({ completed: true, processing: false })
+          .update({ completed: true, processing: false, processing_started_at: null })
           .eq('id', record.id);
         skipped++;
         continue;
@@ -131,6 +147,7 @@ export async function GET(request: NextRequest) {
           next_send_at: isLastStep ? null : getNextSendDate(nextStep).toISOString(),
           completed: isLastStep,
           processing: false,
+          processing_started_at: null,
         })
         .eq('id', record.id);
 
@@ -140,7 +157,7 @@ export async function GET(request: NextRequest) {
       // Release processing lock on error so it can be retried next cron run
       await supabase
         .from('nurture_emails')
-        .update({ processing: false })
+        .update({ processing: false, processing_started_at: null })
         .eq('id', record.id);
       errors++;
     }

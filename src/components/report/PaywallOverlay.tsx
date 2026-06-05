@@ -21,8 +21,13 @@ const FULL_FEATURES = [
 export function PaywallOverlay({ healthCheckId, totalIssues, issueCounts }: PaywallOverlayProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [consentGiven, setConsentGiven] = useState(false);
 
   async function handleUpgrade(tier: 'full' | 'premium') {
+    if (!consentGiven) {
+      setError('Du skal acceptere vilkårene for at fortsætte.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -82,9 +87,22 @@ export function PaywallOverlay({ healthCheckId, totalIssues, issueCounts }: Payw
       </ul>
 
       <div className="mx-auto mt-6 max-w-sm space-y-3">
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-left text-xs leading-relaxed text-text-secondary">
+          <input
+            type="checkbox"
+            checked={consentGiven}
+            onChange={(e) => { setConsentGiven(e.target.checked); setError(null); }}
+            className="mt-0.5 shrink-0"
+          />
+          <span>
+            Jeg accepterer at det digitale indhold leveres øjeblikkeligt efter
+            betaling, og at fortrydelsesretten dermed bortfalder, jf.
+            forbrugeraftalelovens §18, stk. 2, nr. 13.
+          </span>
+        </label>
         <Button
           onClick={() => handleUpgrade('full')}
-          disabled={loading}
+          disabled={loading || !consentGiven}
           className="w-full gap-2 bg-deep-blue py-6 text-base font-semibold hover:bg-deep-blue/90"
           size="lg"
         >
@@ -96,7 +114,7 @@ export function PaywallOverlay({ healthCheckId, totalIssues, issueCounts }: Payw
         </Button>
         <Button
           onClick={() => handleUpgrade('premium')}
-          disabled={loading}
+          disabled={loading || !consentGiven}
           variant="outline"
           className="w-full gap-2 border-deep-blue/30 py-6 text-base font-semibold text-deep-blue hover:bg-deep-blue/5"
           size="lg"
