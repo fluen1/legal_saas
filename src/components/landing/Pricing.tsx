@@ -33,7 +33,7 @@ const PLANS = [
       'Prioriteret handlingsplan',
       'PDF-download af rapport',
     ],
-    cta: 'Køb rapport',
+    cta: 'Start gratis tjek — køb bagefter',
     href: '/helbredstjek',
     featured: true,
     badge: 'Mest populær',
@@ -49,7 +49,7 @@ const PLANS = [
       'Gennemgang med juridisk rådgiver',
       'Skræddersyet prioritering',
     ],
-    cta: 'Vælg Premium',
+    cta: 'Start gratis tjek — vælg Premium bagefter',
     href: '/helbredstjek',
     featured: false,
     badge: null,
@@ -66,6 +66,10 @@ export function Pricing() {
           </h2>
           <p className="mt-3 text-lg text-text-secondary">
             Start gratis og opgradér, når du er klar
+          </p>
+          <p className="mt-2 text-sm text-text-secondary">
+            Alle forløb starter med det gratis helbredstjek. Betaling for Fuld Rapport (499 kr) eller
+            Premium (1.499 kr) sker på resultatsiden, når tjekket er gennemført.
           </p>
         </div>
 
