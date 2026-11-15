@@ -21,7 +21,7 @@ export function Analytics() {
   return (
     <>
       <Script
-        src="https://www.googletagmanager.com/gtag/js?id=G-4BX8Z86YCY"
+        src="https://www.googletagmanager.com/gtag/js?id=G-14NV7YJ0TR"
         strategy="afterInteractive"
       />
       <Script id="gtag-init" strategy="afterInteractive">
@@ -29,7 +29,7 @@ export function Analytics() {
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', 'G-4BX8Z86YCY');
+          gtag('config', 'G-14NV7YJ0TR');
         `}
       </Script>
       <VercelAnalytics />
