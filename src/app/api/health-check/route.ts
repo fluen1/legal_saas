@@ -98,8 +98,14 @@ async function runPipelineBackground(
     let pipelineMetrics: unknown = null;
 
     if (USE_MULTI_AGENT) {
-      // Vercel Pro allows 900s; use env override for local dev
-      const PIPELINE_TIMEOUT_MS = parseInt(process.env.PIPELINE_TIMEOUT_MS ?? '540000', 10);
+      // Planens loft for denne rute er 300s (vercel.json: maxDuration). Denne
+      // promise-race kan derfor aldrig nå en højere værdi — og en env-værdi over
+      // loftet rammer også den indre deadline i pipeline.ts. Clamp til 270s, så
+      // både soft deadline, delresultater og admin-alarm kan nå at køre.
+      const PIPELINE_TIMEOUT_MS = Math.min(
+        parseInt(process.env.PIPELINE_TIMEOUT_MS ?? '270000', 10),
+        270_000
+      );
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error(`Pipeline timeout: analysen tog for lang tid (${Math.round(PIPELINE_TIMEOUT_MS / 1000)}s)`)), PIPELINE_TIMEOUT_MS)
       );
