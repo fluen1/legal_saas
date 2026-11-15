@@ -8,14 +8,22 @@ import { Pricing } from '@/components/landing/Pricing';
 import { Trust } from '@/components/landing/Trust';
 import { FAQ } from '@/components/landing/FAQ';
 import { FinalCTA } from '@/components/landing/FinalCTA';
-import { COMPANY, PRICES, EMAILS } from '@/config/constants';
+import { COMPANY, PRICES, EMAILS, SITE_URL } from '@/config/constants';
+import type { Metadata } from 'next';
+
+// Forsiden skal have sin EGEN canonical: root-layoutet sætter bevidst ingen
+// (en global canonical ville arves af alle undersider og gøre dem til
+// dubletter af forsiden).
+export const metadata: Metadata = {
+  alternates: { canonical: SITE_URL },
+};
 
 const jsonLd = [
   {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: COMPANY.name,
-    url: `https://${COMPANY.domain}`,
+    url: SITE_URL,
     contactPoint: {
       '@type': 'ContactPoint',
       email: EMAILS.contact,
@@ -29,7 +37,7 @@ const jsonLd = [
     name: COMPANY.name,
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
-    url: `https://${COMPANY.domain}`,
+    url: SITE_URL,
     description: 'AI-drevet juridisk compliance-tjek for danske virksomheder.',
     offers: [
       {
@@ -37,14 +45,14 @@ const jsonLd = [
         name: 'Fuld Rapport',
         price: PRICES.full.amount,
         priceCurrency: 'DKK',
-        url: `https://${COMPANY.domain}/helbredstjek`,
+        url: `${SITE_URL}/helbredstjek`,
       },
       {
         '@type': 'Offer',
         name: 'Premium Rapport',
         price: PRICES.premium.amount,
         priceCurrency: 'DKK',
-        url: `https://${COMPANY.domain}/helbredstjek`,
+        url: `${SITE_URL}/helbredstjek`,
       },
     ],
   },

@@ -11,7 +11,7 @@ interface WelcomeEmailProps {
 
 export function WelcomeEmail({ name, reportId, scoreLevel, issueCount, unsubscribeUrl }: WelcomeEmailProps) {
   const greeting = name ? `Hej ${name}` : 'Hej';
-  const reportUrl = `https://retsklar.dk/helbredstjek/resultat?id=${reportId}`;
+  const reportUrl = `https://www.retsklar.dk/helbredstjek/resultat?id=${reportId}`;
 
   return (
     <EmailLayout preview={`Din Retsklar-rapport er klar — ${issueCount} områder kræver opmærksomhed`} unsubscribeUrl={unsubscribeUrl}>

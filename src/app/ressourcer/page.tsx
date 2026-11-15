@@ -1,4 +1,5 @@
 import { Header } from '@/components/shared/Header';
+import { SITE_URL } from "@/config/constants";
 import { Footer } from '@/components/shared/Footer';
 import Link from 'next/link';
 import { Download } from 'lucide-react';
@@ -8,11 +9,12 @@ export const metadata: Metadata = {
   title: 'Gratis Juridiske Ressourcer | Retsklar',
   description:
     'Download gratis juridiske ressourcer: GDPR tjekliste, fraflytningsguide og ejeraftale-skabelon. Til danske virksomheder og lejere.',
+  alternates: { canonical: `${SITE_URL}/ressourcer` },
   openGraph: {
     title: 'Gratis Juridiske Ressourcer | Retsklar',
     description: 'Download gratis ressourcer om dansk erhvervsjura.',
     type: 'website',
-    url: 'https://retsklar.dk/ressourcer',
+    url: 'https://www.retsklar.dk/ressourcer',
   },
 };
 

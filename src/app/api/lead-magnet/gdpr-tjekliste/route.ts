@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
             <p style="font-size:16px;line-height:1.6;color:#374151">
               <strong>Vil du vide præcis, hvor din virksomhed står?</strong><br>
               Tag et gratis juridisk helbredstjek på
-              <a href="https://retsklar.dk/helbredstjek" style="color:#2563eb">retsklar.dk</a>
+              <a href="https://www.retsklar.dk/helbredstjek" style="color:#2563eb">retsklar.dk</a>
               — det tager kun 5 minutter.
             </p>
             <p style="font-size:14px;color:#6b7280;margin-top:24px">

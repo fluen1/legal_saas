@@ -1,7 +1,9 @@
 import { LegalPageLayout } from '@/components/shared/LegalPageLayout';
+import { SITE_URL } from "@/config/constants";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
+  alternates: { canonical: `${SITE_URL}/privatlivspolitik` },
   title: 'Privatlivspolitik — Retsklar',
   description: 'Læs om hvordan Retsklar behandler dine personoplysninger.',
 };

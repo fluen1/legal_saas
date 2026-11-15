@@ -1,4 +1,5 @@
 import { Header } from '@/components/shared/Header';
+import { SITE_URL } from "@/config/constants";
 import { Footer } from '@/components/shared/Footer';
 import { BlogCard } from '@/components/blog/BlogCard';
 import { getAllBlogPosts } from '@/lib/blog';
@@ -8,11 +9,12 @@ export const metadata: Metadata = {
   title: 'Blog — Juridisk compliance for virksomheder | Retsklar',
   description:
     'Artikler og guides om GDPR, ansættelsesret, selskabsret, kontrakter og IP for danske virksomheder. Opdateret 2026.',
+  alternates: { canonical: `${SITE_URL}/blog` },
   openGraph: {
     title: 'Blog — Retsklar',
     description: 'Artikler om juridisk compliance for danske virksomheder.',
     type: 'website',
-    url: 'https://retsklar.dk/blog',
+    url: 'https://www.retsklar.dk/blog',
   },
 };
 

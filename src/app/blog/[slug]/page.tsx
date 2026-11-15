@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { SITE_URL } from "@/config/constants";
 import { getAllBlogPosts, getBlogPost } from '@/lib/blog';
 import { BlogLayout } from '@/components/blog/BlogLayout';
 import { MarkdownRenderer } from '@/lib/markdown';
@@ -30,10 +31,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       modifiedTime: post.updatedAt,
       authors: [post.author],
       tags: post.tags,
-      url: `https://retsklar.dk/blog/${post.slug}`,
+      url: `${SITE_URL}/blog/${post.slug}`,
     },
     alternates: {
-      canonical: `https://retsklar.dk/blog/${post.slug}`,
+      canonical: `${SITE_URL}/blog/${post.slug}`,
     },
   };
 }
@@ -59,9 +60,9 @@ export default async function BlogPostPage({ params }: Props) {
     publisher: {
       '@type': 'Organization',
       name: 'Retsklar',
-      url: 'https://retsklar.dk',
+      url: 'https://www.retsklar.dk',
     },
-    mainEntityOfPage: `https://retsklar.dk/blog/${post.slug}`,
+    mainEntityOfPage: `https://www.retsklar.dk/blog/${post.slug}`,
   };
 
   return (

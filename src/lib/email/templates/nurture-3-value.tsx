@@ -50,7 +50,7 @@ export function Nurture3Value({ name, reportId, issueCount, unsubscribeUrl }: Nu
         {'✓ PDF til arkivering og dokumentation'}
       </Text>
 
-      <CTAButton href={`https://retsklar.dk/helbredstjek/resultat?id=${reportId}&upgrade=true`}>
+      <CTAButton href={`https://www.retsklar.dk/helbredstjek/resultat?id=${reportId}&upgrade=true`}>
         Lås op for fuld rapport — 499 kr.
       </CTAButton>
 
