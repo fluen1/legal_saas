@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { buildGDPRTjekliste } from '@/lib/documents/gdpr-tjekliste';
-import { validateEmail } from '@/lib/utils/helpers';
+import { validateEmail, isReservedTestEmail } from '@/lib/utils/helpers';
 import { rateLimit } from '@/lib/rate-limit';
 import { EMAILS } from '@/config/constants';
 import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe';
@@ -19,6 +19,11 @@ export async function POST(request: NextRequest) {
 
     if (!email || !validateEmail(email)) {
       return NextResponse.json({ error: 'Ugyldig email-adresse' }, { status: 400 });
+    }
+
+    // Reserved test address: answered without side effects (no row, no AI analysis, no mail).
+    if (isReservedTestEmail(email)) {
+      return NextResponse.json({ test: true, note: 'Testadresse: intet gemt, ingen analyse, ingen mail.' });
     }
 
     const supabase = createAdminClient();
