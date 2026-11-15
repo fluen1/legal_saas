@@ -47,7 +47,15 @@ export interface PipelineMetrics {
   warnings: string[];
 }
 
-const PIPELINE_TIMEOUT_MS = parseInt(process.env.PIPELINE_TIMEOUT_MS ?? "280000", 10);
+// Vercel dræber funktionen ved planens loft (vercel.json: maxDuration 300 for
+// health-check-ruten), og pipelinen kører efter HTTP-svaret via after(). En
+// env-værdi over loftet gør derfor den indre deadline umulig at nå: funktionen
+// dræbes før soft deadline og før catch/alarm-blokken, så alarmer tabes i stilhed.
+// Clamp derfor ALTID til 270s (300s minus margin til at gemme delresultater).
+const PIPELINE_TIMEOUT_MS = Math.min(
+  parseInt(process.env.PIPELINE_TIMEOUT_MS ?? "270000", 10),
+  270_000
+);
 const GRACEFUL_MARGIN_MS = 30_000; // Stop starting new steps 30s before deadline
 const SPECIALIST_TIMEOUT_MS = 180_000; // 180s per specialist (3 tool rounds × ~50s each)
 const STAGGER_MS = 3_000; // 3s between specialists to avoid 429 rate limits
