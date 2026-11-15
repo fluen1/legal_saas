@@ -3,6 +3,7 @@ import { getStripe } from '@/lib/stripe/client';
 import { STRIPE_PRICES } from '@/lib/stripe/config';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
+import { isReservedTestEmail } from '@/lib/utils/helpers';
 
 interface CheckoutRequestBody {
   healthCheckId: string;
@@ -44,6 +45,16 @@ export async function POST(request: NextRequest) {
     if (fetchError || !check) {
       log.error('Health check not found:', fetchError);
       return NextResponse.json({ error: 'Helbredstjek ikke fundet' }, { status: 404 });
+    }
+
+    // Reserved test address (RFC 2606/6761): answered without side effects — no Stripe
+    // session, no live charge path, no database update. Same guard as /api/health-check.
+    if (isReservedTestEmail(check.email)) {
+      log.info(`Reserved test address on checkout: tier=${tier}, healthCheckId=${healthCheckId} — no Stripe session created`);
+      return NextResponse.json({
+        test: true,
+        note: 'Testadresse: ingen Stripe-session, ingen betaling, intet gemt.',
+      });
     }
 
     log.info(`Creating checkout session: tier=${tier}, priceId=${priceId}, email=${check.email}`);
