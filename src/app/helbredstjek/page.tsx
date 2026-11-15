@@ -1,7 +1,9 @@
 import { Header } from '@/components/shared/Header';
+import { SITE_URL } from "@/config/constants";
 import { WizardShell } from '@/components/wizard/WizardShell';
 
 export const metadata = {
+  alternates: { canonical: `${SITE_URL}/helbredstjek` },
   title: 'Start dit tjek — Retsklar',
   description: 'Besvar simple spørgsmål om din virksomhed og få en juridisk compliance-rapport.',
 };

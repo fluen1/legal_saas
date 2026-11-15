@@ -36,7 +36,7 @@ export function Nurture4Knowledge({ name, reportId, unsubscribeUrl }: Nurture4Pr
         Tjek om din virksomheds ansættelsesbevis lever op til kravene.
       </Text>
 
-      <CTAButton href={`https://retsklar.dk/helbredstjek/resultat?id=${reportId}&upgrade=true`}>
+      <CTAButton href={`https://www.retsklar.dk/helbredstjek/resultat?id=${reportId}&upgrade=true`}>
         Tjek om dine ansættelsesforhold er compliant
       </CTAButton>
 

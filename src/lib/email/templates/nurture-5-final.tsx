@@ -1,5 +1,6 @@
 import { Text, Link } from '@react-email/components';
 import { EmailLayout, CTAButton, ScoreBadge, BRAND } from './_layout';
+import { EMAILS } from '@/config/constants';
 
 interface Nurture5Props {
   name?: string;
@@ -29,14 +30,14 @@ export function Nurture5Final({ name, reportId, scoreLevel, issueCount, unsubscr
         — når du ved præcist hvad du skal gøre.
       </Text>
 
-      <CTAButton href={`https://retsklar.dk/helbredstjek/resultat?id=${reportId}&upgrade=true`}>
+      <CTAButton href={`https://www.retsklar.dk/helbredstjek/resultat?id=${reportId}&upgrade=true`}>
         Se din rapport
       </CTAButton>
 
       <Text style={{ fontSize: '14px', color: BRAND.muted, lineHeight: '1.6' }}>
         Har du brug for personlig hjælp?{' '}
-        <Link href="https://retsklar.dk/kontakt" style={{ color: BRAND.accent }}>
-          Book en gratis 15-minutters samtale
+        <Link href={`mailto:${EMAILS.contact}?subject=Gratis%20samtale%20om%20min%20rapport`} style={{ color: BRAND.accent }}>
+          Skriv til os og book en gratis samtale
         </Link>
         {' '}— ingen forpligtelse.
       </Text>

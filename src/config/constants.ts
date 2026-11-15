@@ -3,11 +3,18 @@
 
 export const COMPANY = {
   name: 'Retsklar',
+  // Ren visningstekst (fx i mail-footers). Brug IKKE denne til at bygge URL'er —
+  // apex-værten viderestiller (307) til www, og en canonical/og:url der peger på
+  // en viderestillet vært skader indekseringen. Brug SITE_URL nedenfor.
   domain: 'retsklar.dk',
   cvr: '42767107',
   address: 'C/O Erhvervsstyrelsen, Langelinie Allé 17',
   founderName: 'Philip',
 } as const;
+
+// Den kanoniske oprindelse for alle absolutte URL'er (canonical, og:url, sitemap,
+// JSON-LD, links i mails). Sæt ALDRIG denne til en vært der viderestiller.
+export const SITE_URL = 'https://www.retsklar.dk' as const;
 
 export const EMAILS = {
   contact: 'kontakt@retsklar.dk',

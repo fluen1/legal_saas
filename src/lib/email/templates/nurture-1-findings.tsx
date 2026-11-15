@@ -11,7 +11,7 @@ interface Nurture1Props {
 
 export function Nurture1Findings({ name, reportId, scoreLevel, issueCount, unsubscribeUrl }: Nurture1Props) {
   const greeting = name ? `Hej ${name}` : 'Hej';
-  const reportUrl = `https://retsklar.dk/helbredstjek/resultat?id=${reportId}&upgrade=true`;
+  const reportUrl = `https://www.retsklar.dk/helbredstjek/resultat?id=${reportId}&upgrade=true`;
 
   return (
     <EmailLayout preview={`${issueCount} juridiske huller vi fandt — hvad koster det at ignorere dem?`} unsubscribeUrl={unsubscribeUrl}>

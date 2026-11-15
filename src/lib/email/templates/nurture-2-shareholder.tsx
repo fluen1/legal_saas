@@ -38,7 +38,7 @@ export function Nurture2Shareholder({ name, reportId, unsubscribeUrl }: Nurture2
       <Text style={{ fontSize: '14px', color: BRAND.text, lineHeight: '1.6' }}>
         Hvis Retsklar fandt mangler i din selskabsjuridiske situation, er det sandsynligvis her.
       </Text>
-      <CTAButton href={`https://retsklar.dk/helbredstjek/resultat?id=${reportId}&upgrade=true`}>
+      <CTAButton href={`https://www.retsklar.dk/helbredstjek/resultat?id=${reportId}&upgrade=true`}>
         Se hvad din rapport fandt om ejerforhold
       </CTAButton>
     </EmailLayout>

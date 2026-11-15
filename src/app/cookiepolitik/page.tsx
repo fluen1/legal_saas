@@ -1,7 +1,9 @@
 import { LegalPageLayout } from '@/components/shared/LegalPageLayout';
+import { SITE_URL } from "@/config/constants";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
+  alternates: { canonical: `${SITE_URL}/cookiepolitik` },
   title: 'Cookiepolitik — Retsklar',
   description: 'Læs om Retsklars brug af cookies.',
 };

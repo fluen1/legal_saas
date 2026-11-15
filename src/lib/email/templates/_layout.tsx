@@ -53,7 +53,7 @@ export function EmailLayout({ preview, unsubscribeUrl, children }: LayoutProps) 
               Afmeld emails
             </Link>
             {' · '}
-            <Link href="https://retsklar.dk/privatlivspolitik" style={{ color: BRAND.muted }}>
+            <Link href="https://www.retsklar.dk/privatlivspolitik" style={{ color: BRAND.muted }}>
               Privatlivspolitik
             </Link>
           </Text>

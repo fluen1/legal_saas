@@ -1,4 +1,5 @@
 import { Header } from '@/components/shared/Header';
+import { SITE_URL } from "@/config/constants";
 import { Footer } from '@/components/shared/Footer';
 import { LeadMagnetForm } from '@/components/lead-magnet/LeadMagnetForm';
 import { CheckCircle2, Shield } from 'lucide-react';
@@ -8,11 +9,12 @@ export const metadata: Metadata = {
   title: 'Gratis GDPR Tjekliste for Danske Virksomheder | Retsklar',
   description:
     '10 krav du skal overholde — med lovhenvisninger og konkrete handlinger. Download gratis DOCX.',
+  alternates: { canonical: `${SITE_URL}/ressourcer/gdpr-tjekliste` },
   openGraph: {
     title: 'Gratis GDPR Tjekliste | Retsklar',
     description: '10 GDPR-krav din virksomhed skal overholde. Download gratis.',
     type: 'website',
-    url: 'https://retsklar.dk/ressourcer/gdpr-tjekliste',
+    url: 'https://www.retsklar.dk/ressourcer/gdpr-tjekliste',
   },
 };
 

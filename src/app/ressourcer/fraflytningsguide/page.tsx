@@ -1,4 +1,5 @@
 import { Header } from '@/components/shared/Header';
+import { SITE_URL } from "@/config/constants";
 import { Footer } from '@/components/shared/Footer';
 import { LeadMagnetForm } from '@/components/lead-magnet/LeadMagnetForm';
 import { CheckCircle2, Home } from 'lucide-react';
@@ -8,11 +9,12 @@ export const metadata: Metadata = {
   title: 'Fraflytningsguide — Beskyt Dit Depositum | Retsklar',
   description:
     'Trin-for-trin guide til at sikre du får dit depositum tilbage. Med lejelov-henvisninger og tjekliste.',
+  alternates: { canonical: `${SITE_URL}/ressourcer/fraflytningsguide` },
   openGraph: {
     title: 'Fraflytningsguide | Retsklar',
     description: 'Beskyt dit depositum med vores gratis fraflytningsguide.',
     type: 'website',
-    url: 'https://retsklar.dk/ressourcer/fraflytningsguide',
+    url: 'https://www.retsklar.dk/ressourcer/fraflytningsguide',
   },
 };
 

@@ -4,6 +4,7 @@ import Script from 'next/script';
 import { Toaster } from '@/components/ui/sonner';
 import { CookieBanner } from '@/components/shared/CookieBanner';
 import { Analytics } from '@/components/shared/Analytics';
+import { SITE_URL } from '@/config/constants';
 import './globals.css';
 
 const dmSans = DM_Sans({
@@ -22,23 +23,26 @@ export const metadata: Metadata = {
   title: 'Retsklar — Er din virksomhed juridisk på plads?',
   description:
     'Få et AI-drevet juridisk tjek af din virksomhed. Find mangler inden de koster dig dyrt.',
-  metadataBase: new URL('https://retsklar.dk'),
+  // metadataBase gør relative URL'er absolutte. Den skal pege på den vært der
+  // FAKTISK svarer (www) — apex viderestiller med 307.
+  metadataBase: new URL(SITE_URL),
   openGraph: {
     title: 'Retsklar — Er din virksomhed juridisk på plads?',
     description: 'Få et AI-drevet juridisk tjek af din virksomhed. Find mangler inden de koster dig dyrt.',
     locale: 'da_DK',
     type: 'website',
     siteName: 'Retsklar',
-    url: 'https://retsklar.dk',
+    url: 'https://www.retsklar.dk',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Retsklar — Er din virksomhed juridisk på plads?',
     description: 'Få et AI-drevet juridisk tjek af din virksomhed. Find mangler inden de koster dig dyrt.',
   },
-  alternates: {
-    canonical: 'https://retsklar.dk',
-  },
+  // BEVIDST INGEN `alternates.canonical` her: Next.js arver root-layoutets
+  // metadata til ALLE undersider, så en global canonical ville erklære enhver
+  // side uden egen canonical for at være en dublet af forsiden. Hver side sætter
+  // derfor sin egen canonical (se src/app/**/page.tsx).
 };
 
 export default function RootLayout({

@@ -12,8 +12,8 @@ interface PurchaseEmailProps {
 
 export function PurchaseEmail({ name, email, reportId, tier, amount, unsubscribeUrl }: PurchaseEmailProps) {
   const greeting = name ? `Hej ${name}` : 'Hej';
-  const reportUrl = `https://retsklar.dk/helbredstjek/resultat?id=${reportId}`;
-  const pdfUrl = `https://retsklar.dk/api/report/${reportId}/pdf`;
+  const reportUrl = `https://www.retsklar.dk/helbredstjek/resultat?id=${reportId}`;
+  const pdfUrl = `https://www.retsklar.dk/api/report/${reportId}/pdf`;
   const tierLabel = tier === 'premium' ? 'Premium (inkl. personlig opfølgning)' : 'Fuld rapport';
   const amountDKK = amount;
 

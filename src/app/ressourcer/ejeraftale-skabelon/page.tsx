@@ -1,4 +1,5 @@
 import { Header } from '@/components/shared/Header';
+import { SITE_URL } from "@/config/constants";
 import { Footer } from '@/components/shared/Footer';
 import { LeadMagnetForm } from '@/components/lead-magnet/LeadMagnetForm';
 import { CheckCircle2, FileText } from 'lucide-react';
@@ -8,11 +9,12 @@ export const metadata: Metadata = {
   title: 'Gratis Ejeraftale Skabelon til ApS | Retsklar',
   description:
     'Professionel ejeraftale-skabelon med de vigtigste klausuler. Download gratis DOCX klar til tilpasning.',
+  alternates: { canonical: `${SITE_URL}/ressourcer/ejeraftale-skabelon` },
   openGraph: {
     title: 'Ejeraftale Skabelon | Retsklar',
     description: 'Gratis ejeraftale-skabelon til ApS med alle vigtige klausuler.',
     type: 'website',
-    url: 'https://retsklar.dk/ressourcer/ejeraftale-skabelon',
+    url: 'https://www.retsklar.dk/ressourcer/ejeraftale-skabelon',
   },
 };
 
