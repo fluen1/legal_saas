@@ -131,3 +131,13 @@ export function extractJSON(raw: string): string {
 
   return s.trim();
 }
+
+/**
+ * A reserved test address (example.com/.net/.org, *.test, *.example, *.invalid, *.localhost — RFC 2606/6761) can never
+ * belong to a real customer. Public endpoints answer it without side effects: no row, no AI analysis, no mail — so the
+ * site can be tested in production without creating customer data, cost or mail.
+ */
+export function isReservedTestEmail(email: string): boolean {
+  const domain = String(email).trim().toLowerCase().split('@').pop() ?? '';
+  return ['example.com', 'example.net', 'example.org'].includes(domain) || /(^|\.)(test|example|invalid|localhost)$/.test(domain);
+}

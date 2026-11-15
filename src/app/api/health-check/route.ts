@@ -6,7 +6,7 @@ import {
   buildHealthCheckUserPrompt,
 } from '@/lib/ai/prompts/health-check';
 import { HealthCheckOutputSchema } from '@/lib/ai/schemas/health-check-output';
-import { mapAIOutputToReport, validateEmail } from '@/lib/utils/helpers';
+import { mapAIOutputToReport, validateEmail, isReservedTestEmail } from '@/lib/utils/helpers';
 import { parseClaudeJSON } from '@/lib/ai/json-extraction';
 import { sendWelcomeReportEmail } from '@/lib/email/resend';
 import { sendAdminAlert } from '@/lib/email/admin-alert';
@@ -265,6 +265,11 @@ export async function POST(request: NextRequest) {
 
     if (!validateEmail(email)) {
       return NextResponse.json({ error: 'Ugyldig email-adresse' }, { status: 400 });
+    }
+
+    // Reserved test address: answered without side effects (no row, no AI analysis, no mail).
+    if (isReservedTestEmail(email)) {
+      return NextResponse.json({ test: true, note: 'Testadresse: intet gemt, ingen analyse, ingen mail.' });
     }
 
     // Server-side validation of wizard answers
